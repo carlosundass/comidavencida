@@ -6,31 +6,27 @@ const Scanner = ({ onScan, onClose }) => {
   const scannerRef = useRef(null);
 
   useEffect(() => {
-    // Usamos el "Core" de la librería para evitar que inyecte botones y menús feos
     const html5QrCode = new Html5Qrcode("reader-video");
     scannerRef.current = html5QrCode;
 
     html5QrCode.start(
-      { facingMode: "environment" }, // Forzar siempre la cámara trasera
+      { facingMode: "environment" },
       {
         fps: 15,
-        qrbox: { width: 280, height: 180 },
-        aspectRatio: 1.0
+        qrbox: { width: 250, height: 150 }
+        // ELIMINAMOS aspectRatio para que se adapte naturalmente a la pantalla vertical
       },
       (decodedText) => {
-        // Cuando lee un código exitosamente
         onScan(decodedText);
         html5QrCode.stop().catch(console.error);
       },
       (errorMessage) => {
-        // La librería tira errores constantes mientras busca el código, los ignoramos
+        // Ignoramos errores continuos de búsqueda
       }
     ).catch((err) => {
-      console.error("Error al iniciar la cámara:", err);
-      alert("Por favor, permite el acceso a la cámara para escanear.");
+      console.error("Error al iniciar cámara:", err);
     });
 
-    // Limpieza: apagar la cámara si el usuario cierra el modal
     return () => {
       if (scannerRef.current && scannerRef.current.isScanning) {
         scannerRef.current.stop().catch(console.error);
@@ -41,7 +37,7 @@ const Scanner = ({ onScan, onClose }) => {
   return (
     <div className="fixed inset-0 z-[1000] bg-black flex flex-col font-sans">
       
-      {/* HEADER DEL ESCÁNER */}
+      {/* HEADER */}
       <div className="flex justify-between items-center p-6 text-white absolute top-0 w-full z-20 bg-gradient-to-b from-black/90 to-transparent">
         <div className="flex items-center gap-2">
           <Zap className="text-yellow-400" size={20} />
@@ -52,28 +48,31 @@ const Scanner = ({ onScan, onClose }) => {
         </button>
       </div>
 
-      {/* CONTENEDOR DEL VIDEO LIMPIO */}
+      {/* CONTENEDOR DEL VIDEO */}
       <div className="flex-1 relative flex items-center justify-center w-full h-full overflow-hidden bg-black">
-        {/* Aquí la librería inyectará SOLO la etiqueta <video> */}
-        <div id="reader-video" className="absolute inset-0 w-full h-full flex items-center justify-center [&>video]:object-cover [&>video]:w-full [&>video]:h-full"></div>
-
-        {/* MÁSCARA OSCURA ALREDEDOR DEL MARCO */}
-        <div className="absolute inset-0 pointer-events-none border-[60px] border-black/60 z-10"></div>
         
-        {/* MARCO DE ESCANEO ESTILO LÁSER */}
-        <div className="relative z-10 w-[280px] h-[180px] border-2 border-white/50 rounded-xl pointer-events-none flex items-center justify-center shadow-[0_0_0_9999px_rgba(0,0,0,0.4)] sm:shadow-none">
-          {/* Esquinas destacadas */}
+        {/* LA MAGIA: Forzamos al video interno a cubrir el 100% de la pantalla ignorando los estilos de la librería */}
+        <div 
+          id="reader-video" 
+          className="absolute inset-0 w-full h-full [&_video]:!w-full [&_video]:!h-full [&_video]:!object-cover"
+        ></div>
+
+        {/* MÁSCARA OSCURA */}
+        <div className="absolute inset-0 pointer-events-none border-[50px] border-black/60 z-10"></div>
+        
+        {/* MARCO LÁSER */}
+        <div className="relative z-10 w-[250px] h-[150px] border-2 border-white/50 rounded-xl pointer-events-none flex items-center justify-center">
           <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-xl"></div>
           <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-xl"></div>
           <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-blue-500 rounded-bl-xl"></div>
           <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-blue-500 rounded-br-xl"></div>
           
-          {/* Línea láser animada */}
+          {/* Láser rojo */}
           <div className="w-full h-[2px] bg-red-500 shadow-[0_0_12px_red] animate-pulse"></div>
         </div>
       </div>
 
-      {/* FOOTER DEL ESCÁNER */}
+      {/* FOOTER */}
       <div className="absolute bottom-0 w-full p-8 text-center bg-gradient-to-t from-black via-black/90 to-transparent z-20 pb-12">
         <p className="text-white text-xl font-black tracking-tight">Enfoca el código</p>
         <p className="text-gray-400 text-xs mt-2 uppercase tracking-widest font-bold">El registro será automático</p>
