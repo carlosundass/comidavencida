@@ -2,9 +2,8 @@ import Dashboard from './Dashboard'
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center">
-      {/* Simula la pantalla de un celular en PC */}
-      <div className="w-full max-w-md shadow-2xl min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-100 flex justify-center items-center font-sans">
+      <div className="w-full max-w-md min-h-screen bg-[#F4F6F8] shadow-2xl relative overflow-hidden sm:min-h-[90vh] sm:rounded-[2.5rem]">
         <Dashboard />
       </div>
     </div>
