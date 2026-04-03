@@ -4,11 +4,7 @@
 
 body {
   margin: 0;
-  background-color: #F8F9FB; /* Gris muy claro tipo Apple */
+  background-color: #F8F9FB;
   font-family: system-ui, -apple-system, sans-serif;
   -webkit-tap-highlight-color: transparent;
-}
-
-#root {
-  width: 100%;
 }

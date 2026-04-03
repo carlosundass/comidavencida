@@ -1,69 +1,82 @@
-import React, { useEffect } from 'react';
-import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode';
+import React, { useEffect, useRef } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
 import { X, Zap } from 'lucide-react';
 
 const Scanner = ({ onScan, onClose }) => {
+  const scannerRef = useRef(null);
+
   useEffect(() => {
-    const scanner = new Html5QrcodeScanner('reader', {
-      fps: 30,
-      qrbox: { width: 250, height: 150 },
-      rememberLastUsedCamera: true,
-      supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-      videoConstraints: {
-        facingMode: { exact: "environment" },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 }
+    // Usamos el "Core" de la librería para evitar que inyecte botones y menús feos
+    const html5QrCode = new Html5Qrcode("reader-video");
+    scannerRef.current = html5QrCode;
+
+    html5QrCode.start(
+      { facingMode: "environment" }, // Forzar siempre la cámara trasera
+      {
+        fps: 15,
+        qrbox: { width: 280, height: 180 },
+        aspectRatio: 1.0
+      },
+      (decodedText) => {
+        // Cuando lee un código exitosamente
+        onScan(decodedText);
+        html5QrCode.stop().catch(console.error);
+      },
+      (errorMessage) => {
+        // La librería tira errores constantes mientras busca el código, los ignoramos
       }
+    ).catch((err) => {
+      console.error("Error al iniciar la cámara:", err);
+      alert("Por favor, permite el acceso a la cámara para escanear.");
     });
 
-    scanner.render(
-      (decodedText) => {
-        onScan(decodedText);
-        scanner.clear();
-      },
-      (error) => { /* Ignorar consola para no saturar */ }
-    );
-
+    // Limpieza: apagar la cámara si el usuario cierra el modal
     return () => {
-      scanner.clear().catch(e => console.error(e));
+      if (scannerRef.current && scannerRef.current.isScanning) {
+        scannerRef.current.stop().catch(console.error);
+      }
     };
   }, [onScan]);
 
   return (
-    <div className="absolute inset-0 bg-black z-[100] flex flex-col font-sans">
-      {/* Header Escáner */}
-      <div className="p-6 flex justify-between items-center text-white relative z-10 bg-gradient-to-b from-black/80 to-transparent">
+    <div className="fixed inset-0 z-[1000] bg-black flex flex-col font-sans">
+      
+      {/* HEADER DEL ESCÁNER */}
+      <div className="flex justify-between items-center p-6 text-white absolute top-0 w-full z-20 bg-gradient-to-b from-black/90 to-transparent">
         <div className="flex items-center gap-2">
-          <Zap size={20} className="text-yellow-400" />
-          <h2 className="text-sm font-black uppercase tracking-widest">Escáner Activo</h2>
+          <Zap className="text-yellow-400" size={20} />
+          <span className="font-black tracking-widest text-sm uppercase">Escáner Activo</span>
         </div>
-        <button onClick={onClose} className="p-2 bg-white/20 rounded-full backdrop-blur-md">
+        <button onClick={onClose} className="bg-white/20 p-2.5 rounded-full hover:bg-white/30 transition-colors backdrop-blur-md">
           <X size={20} />
         </button>
       </div>
-      
-      {/* Contenedor del video con marco visual */}
-      <div className="flex-1 relative flex items-center justify-center">
-        <div id="reader" className="absolute inset-0 object-cover [&>video]:object-cover w-full h-full"></div>
+
+      {/* CONTENEDOR DEL VIDEO LIMPIO */}
+      <div className="flex-1 relative flex items-center justify-center w-full h-full overflow-hidden bg-black">
+        {/* Aquí la librería inyectará SOLO la etiqueta <video> */}
+        <div id="reader-video" className="absolute inset-0 w-full h-full flex items-center justify-center [&>video]:object-cover [&>video]:w-full [&>video]:h-full"></div>
+
+        {/* MÁSCARA OSCURA ALREDEDOR DEL MARCO */}
+        <div className="absolute inset-0 pointer-events-none border-[60px] border-black/60 z-10"></div>
         
-        {/* Overlay Visual (Marco) */}
-        <div className="absolute inset-0 pointer-events-none border-[40px] border-black/40"></div>
-        <div className="relative z-10 w-[250px] h-[150px] border-2 border-white/50 rounded-xl pointer-events-none">
+        {/* MARCO DE ESCANEO ESTILO LÁSER */}
+        <div className="relative z-10 w-[280px] h-[180px] border-2 border-white/50 rounded-xl pointer-events-none flex items-center justify-center shadow-[0_0_0_9999px_rgba(0,0,0,0.4)] sm:shadow-none">
           {/* Esquinas destacadas */}
-          <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-xl"></div>
-          <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-xl"></div>
-          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500 rounded-bl-xl"></div>
-          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500 rounded-br-xl"></div>
+          <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-xl"></div>
+          <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-xl"></div>
+          <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-blue-500 rounded-bl-xl"></div>
+          <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-blue-500 rounded-br-xl"></div>
           
           {/* Línea láser animada */}
-          <div className="absolute top-1/2 left-4 right-4 h-0.5 bg-red-500/80 shadow-[0_0_8px_red] rounded-full animate-pulse"></div>
+          <div className="w-full h-[2px] bg-red-500 shadow-[0_0_12px_red] animate-pulse"></div>
         </div>
       </div>
-      
-      {/* Footer Escáner */}
-      <div className="p-8 text-center relative z-10 bg-gradient-to-t from-black/90 to-transparent pb-12">
-        <p className="text-white text-lg font-bold">Enfoca el código de barras</p>
-        <p className="text-gray-400 text-xs mt-2 uppercase tracking-widest font-bold">La app detectará el nombre</p>
+
+      {/* FOOTER DEL ESCÁNER */}
+      <div className="absolute bottom-0 w-full p-8 text-center bg-gradient-to-t from-black via-black/90 to-transparent z-20 pb-12">
+        <p className="text-white text-xl font-black tracking-tight">Enfoca el código</p>
+        <p className="text-gray-400 text-xs mt-2 uppercase tracking-widest font-bold">El registro será automático</p>
       </div>
     </div>
   );
