@@ -4,10 +4,15 @@ import Scanner from './Scanner';
 // IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
 import { collection, doc, setDoc, getDoc, addDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
+// IMPORTACIÓN DE LA IA DE GOOGLE
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// Inicializamos Gemini con tu llave
+const genAI = new GoogleGenerativeAI("AIzaSyDNLXITHL9DeicbOcPtUqKi6aJKisW7Vh4");
 
 const Dashboard = () => {
   // ==========================================
-  // 1. SISTEMA DE AUTENTICACIÓN EN LA NUBE
+  // 1. SISTEMA DE AUTENTICACIÓN
   // ==========================================
   const [usuarioActual, setUsuarioActual] = useState(() => {
     const guardado = localStorage.getItem('cv_usuario_activo');
@@ -36,7 +41,6 @@ const Dashboard = () => {
         if (despensaSnap.exists()) {
           setErrorAuth('Ese nombre de despensa ya existe. Elige otro.');
         } else {
-          // Guardar nueva despensa en la nube
           await setDoc(despensaRef, { pin: inputPin, creadaEn: new Date() });
           iniciarSesion(idLimpio);
         }
@@ -60,7 +64,7 @@ const Dashboard = () => {
   const iniciarSesion = (id) => {
     const dataUsuario = { id };
     setUsuarioActual(dataUsuario);
-    localStorage.setItem('cv_usuario_activo', JSON.stringify(dataUsuario)); // Mantenemos la sesión activa en el celular
+    localStorage.setItem('cv_usuario_activo', JSON.stringify(dataUsuario));
     setInputId('');
     setInputPin('');
   };
@@ -69,22 +73,20 @@ const Dashboard = () => {
     setUsuarioActual(null);
     localStorage.removeItem('cv_usuario_activo');
     setProductos([]);
+    setRecetaIA(null); // Limpiamos la receta al salir
   };
 
   // ==========================================
-  // 2. LÓGICA DE LA DESPENSA (TIEMPO REAL)
+  // 2. LÓGICA DE LA DESPENSA
   // ==========================================
   const [productos, setProductos] = useState([]);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [mostrarScanner, setMostrarScanner] = useState(false);
   const [nuevoProd, setNuevoProd] = useState({ nombre: '', fecha: '' });
 
-  // ⚠️ MAGIA: Escuchar cambios en la nube en tiempo real
   useEffect(() => {
     if (usuarioActual) {
       const itemsRef = collection(db, 'despensas', usuarioActual.id, 'items');
-      
-      // onSnapshot mantiene una conexión viva con Firestore
       const unsubscribe = onSnapshot(itemsRef, (snapshot) => {
         const datosMagicos = snapshot.docs.map(doc => ({
           id: doc.id,
@@ -92,37 +94,64 @@ const Dashboard = () => {
         }));
         setProductos(datosMagicos);
       });
-
-      return () => unsubscribe(); // Limpiar al salir
+      return () => unsubscribe();
     }
   }, [usuarioActual]);
 
-  // Guardar ítem en la nube
   const agregarItem = async () => {
     if (!nuevoProd.nombre || !nuevoProd.fecha) return;
-    
     const itemsRef = collection(db, 'despensas', usuarioActual.id, 'items');
     await addDoc(itemsRef, {
       nombre: nuevoProd.nombre,
       fecha: nuevoProd.fecha,
       creadoEn: new Date().getTime()
     });
-    
     setNuevoProd({ nombre: '', fecha: '' });
     setMostrarForm(false);
   };
 
-  // Borrar ítem de la nube
   const borrarItem = async (itemId) => {
     const itemRef = doc(db, 'despensas', usuarioActual.id, 'items', itemId);
     await deleteDoc(itemRef);
   };
 
   // ==========================================
-  // 3. DISEÑO Y CÁLCULOS
+  // 3. ESTADOS Y FUNCIÓN DE LA IA (GEMINI)
   // ==========================================
+  const [recetaIA, setRecetaIA] = useState(null);
+  const [cargandoIA, setCargandoIA] = useState(false);
+
   const calcularDias = (f) => Math.ceil((new Date(f) - new Date()) / (1000 * 60 * 60 * 24));
 
+  const generarRecetaMagica = async () => {
+    // 1. Buscamos qué cosas están por vencer (hasta en 7 días)
+    const porVencer = productos.filter(p => calcularDias(p.fecha) >= 0 && calcularDias(p.fecha) <= 7);
+    if (porVencer.length === 0) return;
+
+    // 2. Extraemos solo los nombres separados por comas
+    const ingredientes = porVencer.map(p => p.nombre).join(', ');
+
+    // 3. Le damos las instrucciones exactas a la IA
+    const prompt = `Soy chileno y estoy tratando de no botar comida a la basura. Tengo estos alimentos que están por vencer pronto: ${ingredientes}. Eres un chef experto en aprovechar sobras de forma creativa. Inventa una idea de comida o cena súper rápida, casera y deliciosa usando algunos o todos estos ingredientes. Responde directamente con la idea en un solo párrafo corto, con un tono muy amigable, motivador y chileno. No uses listas largas.`;
+
+    setCargandoIA(true);
+    try {
+      // Usamos el modelo más rápido de Google
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      setRecetaIA(response.text());
+    } catch (error) {
+      console.error(error);
+      setRecetaIA("¡Ups! Parece que el chef IA se quedó dormido. Intenta de nuevo en unos minutos.");
+    } finally {
+      setCargandoIA(false);
+    }
+  };
+
+  // ==========================================
+  // 4. DISEÑO Y WIDGETS
+  // ==========================================
   const obtenerEstado = (dias) => {
     if (dias < 0) return { titulo: 'VENCIDO', bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-500', icono: '💀' };
     if (dias <= 3) return { titulo: '¡URGENTE!', bg: 'bg-[#FFEBEE]', border: 'border-[#FFCDD2]', text: 'text-red-700', icono: '🔴' };
@@ -130,39 +159,50 @@ const Dashboard = () => {
     return { titulo: 'TRANQUI', bg: 'bg-[#E8F5E9]', border: 'border-[#C8E6C9]', text: 'text-green-700', icono: '🟢' };
   };
 
-  const generarHackReceta = () => {
-    const porVencer = productos.filter(p => {
-      const d = calcularDias(p.fecha);
-      return d >= 0 && d <= 3;
-    });
-
+  // EL NUEVO WIDGET INTERACTIVO DE LA IA
+  const renderWidgetIA = () => {
+    const porVencer = productos.filter(p => calcularDias(p.fecha) >= 0 && calcularDias(p.fecha) <= 7);
     if (porVencer.length === 0) return null;
-    const nombres = porVencer.map(p => p.nombre.toLowerCase());
-    let sugerencia = "¡Ponte creativo! Haz una tortilla o salteado con lo que está por vencer.";
-    
-    if (nombres.some(n => n.includes('leche') || n.includes('huevo') || n.includes('yogur'))) {
-      sugerencia = "¡Ideal para hacer una Leche Asada casera o unos panqueques hoy mismo!";
-    } else if (nombres.some(n => n.includes('verdura') || n.includes('zapallo') || n.includes('zanahoria'))) {
-      sugerencia = "¡Un Budín de Verduras o una crema caliente te salvan la cena!";
-    } else if (nombres.some(n => n.includes('carne') || n.includes('pollo') || n.includes('vienesa'))) {
-      sugerencia = "¡Arma un salteado rápido con arroz o unos tallarines salvadores!";
-    }
 
     return (
-      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-[2rem] p-5 shadow-lg mb-6 text-white relative overflow-hidden">
+      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-[2rem] p-6 shadow-lg mb-6 text-white relative overflow-hidden transition-all duration-300">
         <Sparkles className="absolute top-2 right-2 text-yellow-300 opacity-50" size={40} />
-        <div className="flex items-center gap-2 mb-2 relative z-10">
+        
+        <div className="flex items-center gap-2 mb-4 relative z-10">
           <ChefHat size={20} className="text-yellow-300" />
-          <h3 className="font-black text-sm uppercase tracking-widest text-yellow-300">Hack de Recetas</h3>
+          <h3 className="font-black text-sm uppercase tracking-widest text-yellow-300">Chef Inteligente</h3>
         </div>
-        <p className="font-bold text-sm relative z-10 leading-snug">{sugerencia}</p>
+
+        {recetaIA ? (
+          <div className="relative z-10 animate-in fade-in zoom-in duration-300">
+            <p className="font-bold text-[13px] leading-snug mb-4">{recetaIA}</p>
+            <button 
+              onClick={() => setRecetaIA(null)} 
+              className="bg-white/20 px-3 py-1.5 rounded-lg text-[10px] uppercase font-black tracking-widest hover:bg-white/30 transition-colors"
+            >
+              ← Otra Idea
+            </button>
+          </div>
+        ) : (
+          <div className="relative z-10">
+            <p className="font-bold text-sm leading-snug mb-5">
+              Tienes {porVencer.length} alimentos a punto de vencer. ¿Quieres que la IA te arme una receta para salvarlos?
+            </p>
+            <button 
+              onClick={generarRecetaMagica}
+              disabled={cargandoIA}
+              className="bg-white text-indigo-600 font-black text-xs uppercase tracking-widest px-5 py-3 rounded-xl shadow-md active:scale-95 transition-all disabled:opacity-70 flex items-center justify-center w-full"
+            >
+              {cargandoIA ? 'Pensando receta...' : 'Crear receta mágica ✨'}
+            </button>
+          </div>
+        )}
       </div>
     );
   };
 
-
   // ==========================================
-  // RENDER PANTALLA DE LOGIN
+  // RENDER PANTALLAS
   // ==========================================
   if (!usuarioActual) {
     return (
@@ -190,9 +230,7 @@ const Dashboard = () => {
                 <input type="password" inputMode="numeric" maxLength={4} placeholder="****" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-black text-2xl text-center tracking-[0.5em] text-gray-800" value={inputPin} onChange={(e) => setInputPin(e.target.value.replace(/\D/g, ''))} />
               </div>
 
-              {errorAuth && (
-                <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center border border-red-100">{errorAuth}</div>
-              )}
+              {errorAuth && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center border border-red-100">{errorAuth}</div>}
 
               <button disabled={cargandoAuth} onClick={manejarAcceso} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm mt-4 disabled:opacity-50">
                 {cargandoAuth ? 'Conectando...' : (modoLogin === 'crear' ? 'Abrir mi Despensa 🚀' : 'Entrar ✅')}
@@ -204,9 +242,6 @@ const Dashboard = () => {
     );
   }
 
-  // ==========================================
-  // RENDER DEL DASHBOARD
-  // ==========================================
   return (
     <div className="min-h-screen bg-[#F8F9FB] font-sans pb-40 flex flex-col relative">
       <header className="px-6 pt-12 pb-4 flex justify-between items-center">
@@ -221,7 +256,9 @@ const Dashboard = () => {
       </header>
 
       <main className="flex-1 px-6 mt-2">
-        {generarHackReceta()}
+        {/* Renderizamos el nuevo Widget Inteligente */}
+        {renderWidgetIA()}
+        
         <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Semáforo</h2>
 
         {productos.length === 0 && (
@@ -252,7 +289,6 @@ const Dashboard = () => {
                     <span className={`block text-2xl font-black leading-none ${est.text}`}>{Math.abs(dias)}</span>
                     <span className={`text-[8px] font-black uppercase tracking-widest ${est.text}`}>{dias < 0 ? 'días' : 'días'}</span>
                   </div>
-                  {/* AQUÍ LLAMAMOS A LA FUNCIÓN DE BORRADO DE FIREBASE */}
                   <button onClick={() => borrarItem(p.id)} className="text-gray-400 hover:text-red-500 p-1"><Trash2 size={20} /></button>
                 </div>
               </div>
