@@ -109,7 +109,7 @@ const Dashboard = () => {
     await deleteDoc(itemRef);
   };
 
-  // Activar AdSense si el script está cargado
+  // Activar AdSense
   useEffect(() => {
     try {
       if (usuarioActual && window.adsbygoogle) {
@@ -118,7 +118,7 @@ const Dashboard = () => {
     } catch (e) {
       console.log("AdSense cargando...");
     }
-  }, [usuarioActual]);
+  }, [usuarioActual, productos]);
 
   // ==========================================
   // 3. DISEÑO PREMIUM Y SEMÁFORO
@@ -221,14 +221,14 @@ const Dashboard = () => {
           })}
         </div>
 
-        {/* ÁREA DE PUBLICIDAD GOOGLE ADSENSE INTEGRADA (ESTÁTICA, NO FLOTANTE) */}
-        <div className="mt-8 bg-gray-50 border-2 border-dashed border-gray-200 rounded-[1.5rem] h-[90px] flex items-center justify-center overflow-hidden">
-          <ins className="adsbygoogle"
-               style={{ display: 'block', width: '100%', height: '90px' }}
-               data-ad-client="ca-pub-3386079946838939"
-               data-ad-slot="TU_SLOT_AQUI"
-               data-ad-format="horizontal"
-               data-full-width-responsive="true"></ins>
+        {/* ÁREA DE PUBLICIDAD GOOGLE ADSENSE INTEGRADA (BANNER HORIZONTAL ESTRICTO) */}
+        <div className="mt-8 mb-10 flex justify-center w-full">
+          <div className="w-[320px] h-[50px] bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border border-gray-100">
+            <ins className="adsbygoogle"
+                 style={{ display: 'inline-block', width: '320px', height: '50px' }}
+                 data-ad-client="ca-pub-3386079946838939"
+                 data-ad-slot="TU_SLOT_AQUI"></ins>
+          </div>
         </div>
       </main>
 
