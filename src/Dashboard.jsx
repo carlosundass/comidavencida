@@ -1,19 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, X, ScanBarcode, ChefHat, Sparkles, Plus, LogOut, Lock, Home } from 'lucide-react';
 import Scanner from './Scanner';
-// IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
 import { collection, doc, setDoc, getDoc, addDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
-// IMPORTACIÓN DE LA IA DE GOOGLE
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Inicializamos Gemini con tu llave
 const genAI = new GoogleGenerativeAI("AIzaSyDNLXITHL9DeicbOcPtUqKi6aJKisW7Vh4");
 
 const Dashboard = () => {
-  // ==========================================
-  // 1. SISTEMA DE AUTENTICACIÓN
-  // ==========================================
   const [usuarioActual, setUsuarioActual] = useState(() => {
     const guardado = localStorage.getItem('cv_usuario_activo');
     return guardado ? JSON.parse(guardado) : null;
@@ -28,57 +23,40 @@ const Dashboard = () => {
   const manejarAcceso = async () => {
     setErrorAuth('');
     const idLimpio = inputId.trim().toLowerCase();
-    
     if (idLimpio.length < 3) return setErrorAuth('El ID debe tener al menos 3 letras.');
     if (inputPin.length !== 4) return setErrorAuth('El PIN debe ser de 4 números.');
-
     setCargandoAuth(true);
     try {
       const despensaRef = doc(db, 'despensas', idLimpio);
       const despensaSnap = await getDoc(despensaRef);
-
       if (modoLogin === 'crear') {
         if (despensaSnap.exists()) {
-          setErrorAuth('Ese nombre de despensa ya existe. Elige otro.');
+          setErrorAuth('Ese nombre de despensa ya existe.');
         } else {
           await setDoc(despensaRef, { pin: inputPin, creadaEn: new Date() });
           iniciarSesion(idLimpio);
         }
       } else {
-        if (!despensaSnap.exists()) {
-          setErrorAuth('No encontramos esta despensa.');
-        } else if (despensaSnap.data().pin !== inputPin) {
-          setErrorAuth('El PIN es incorrecto.');
+        if (!despensaSnap.exists() || despensaSnap.data().pin !== inputPin) {
+          setErrorAuth('ID o PIN incorrectos.');
         } else {
           iniciarSesion(idLimpio);
         }
       }
-    } catch (error) {
-      setErrorAuth('Error de conexión. Revisa tu internet.');
-      console.error(error);
-    } finally {
-      setCargandoAuth(false);
-    }
+    } catch (e) { setErrorAuth('Error de conexión.'); } finally { setCargandoAuth(false); }
   };
 
   const iniciarSesion = (id) => {
-    const dataUsuario = { id };
-    setUsuarioActual(dataUsuario);
-    localStorage.setItem('cv_usuario_activo', JSON.stringify(dataUsuario));
-    setInputId('');
-    setInputPin('');
+    const data = { id };
+    setUsuarioActual(data);
+    localStorage.setItem('cv_usuario_activo', JSON.stringify(data));
   };
 
   const cerrarSesion = () => {
     setUsuarioActual(null);
     localStorage.removeItem('cv_usuario_activo');
-    setProductos([]);
-    setRecetaIA(null);
   };
 
-  // ==========================================
-  // 2. LÓGICA DE LA DESPENSA (FIREBASE)
-  // ==========================================
   const [productos, setProductos] = useState([]);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [mostrarScanner, setMostrarScanner] = useState(false);
@@ -87,133 +65,81 @@ const Dashboard = () => {
   useEffect(() => {
     if (usuarioActual) {
       const itemsRef = collection(db, 'despensas', usuarioActual.id, 'items');
-      const unsubscribe = onSnapshot(itemsRef, (snapshot) => {
-        const datosMagicos = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setProductos(datosMagicos);
+      return onSnapshot(itemsRef, (snap) => {
+        setProductos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       });
-      return () => unsubscribe();
     }
   }, [usuarioActual]);
 
   const agregarItem = async () => {
     if (!nuevoProd.nombre || !nuevoProd.fecha) return;
-    const itemsRef = collection(db, 'despensas', usuarioActual.id, 'items');
-    await addDoc(itemsRef, {
-      nombre: nuevoProd.nombre,
-      fecha: nuevoProd.fecha,
-      creadoEn: new Date().getTime()
+    await addDoc(collection(db, 'despensas', usuarioActual.id, 'items'), {
+      nombre: nuevoProd.nombre, fecha: nuevoProd.fecha, creadoEn: Date.now()
     });
     setNuevoProd({ nombre: '', fecha: '' });
     setMostrarForm(false);
   };
 
-  const borrarItem = async (itemId) => {
-    const itemRef = doc(db, 'despensas', usuarioActual.id, 'items', itemId);
-    await deleteDoc(itemRef);
+  const borrarItem = async (id) => {
+    await deleteDoc(doc(db, 'despensas', usuarioActual.id, 'items', id));
   };
 
   // ==========================================
-  // 3. LÓGICA DE LA IA (GEMINI PRO)
+  // FIX DE IA: Usando el modelo exacto
   // ==========================================
   const [recetaIA, setRecetaIA] = useState(null);
   const [cargandoIA, setCargandoIA] = useState(false);
 
-  const calcularDias = (f) => Math.ceil((new Date(f) - new Date()) / (1000 * 60 * 60 * 24));
-
   const generarRecetaMagica = async () => {
-    const porVencer = productos.filter(p => calcularDias(p.fecha) >= 0 && calcularDias(p.fecha) <= 7);
+    const porVencer = productos.filter(p => {
+      const d = Math.ceil((new Date(p.fecha) - new Date()) / (1000 * 60 * 60 * 24));
+      return d >= 0 && d <= 7;
+    });
+
     if (porVencer.length === 0) return;
-
     const ingredientes = porVencer.map(p => p.nombre).join(', ');
-    const prompt = `Soy chileno y estoy tratando de no botar comida. Tengo estos alimentos por vencer pronto: ${ingredientes}. Eres un chef experto en aprovechar sobras. Inventa una idea de comida o cena rápida, casera y deliciosa. Responde directamente con la idea en un párrafo corto, con un tono muy amigable y chileno.`;
-
+    
     setCargandoIA(true);
     try {
-      // USAMOS GEMINI-PRO PARA MAYOR COMPATIBILIDAD
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      // FIX: Forzamos el nombre del modelo a gemini-1.5-flash (el más actual)
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      
+      const prompt = `Actúa como un chef chileno experto. Tengo estos ingredientes por vencer: ${ingredientes}. 
+      Dame una sugerencia de receta muy rápida, casera y en un tono chileno cercano. 
+      Responde en UN SOLO párrafo corto, máximo 3 lineas.`;
+
       const result = await model.generateContent(prompt);
-      const response = await result.response;
-      setRecetaIA(response.text());
+      const text = result.response.text();
+      setRecetaIA(text);
     } catch (error) {
-      console.error("ERROR REAL DE GEMINI:", error);
-      setRecetaIA(`Error técnico: ${error.message}`);
+      console.error(error);
+      setRecetaIA(`Error: Inténtalo de nuevo, el Chef está ocupado.`);
     } finally {
       setCargandoIA(false);
     }
   };
 
-  // ==========================================
-  // 4. DISEÑO Y COMPONENTES VISUALES
-  // ==========================================
   const obtenerEstado = (dias) => {
-    if (dias < 0) return { titulo: 'VENCIDO', bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-500', icono: '💀' };
-    if (dias <= 3) return { titulo: '¡URGENTE!', bg: 'bg-[#FFEBEE]', border: 'border-[#FFCDD2]', text: 'text-red-700', icono: '🔴' };
-    if (dias <= 7) return { titulo: 'PLANIFICA', bg: 'bg-[#FFF3E0]', border: 'border-[#FFE0B2]', text: 'text-orange-700', icono: '🟠' };
-    return { titulo: 'TRANQUI', bg: 'bg-[#E8F5E9]', border: 'border-[#C8E6C9]', text: 'text-green-700', icono: '🟢' };
-  };
-
-  const renderWidgetIA = () => {
-    const porVencer = productos.filter(p => calcularDias(p.fecha) >= 0 && calcularDias(p.fecha) <= 7);
-    if (porVencer.length === 0) return null;
-
-    return (
-      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-[2rem] p-6 shadow-lg mb-6 text-white relative overflow-hidden">
-        <Sparkles className="absolute top-2 right-2 text-yellow-300 opacity-50" size={40} />
-        <div className="flex items-center gap-2 mb-4 relative z-10">
-          <ChefHat size={20} className="text-yellow-300" />
-          <h3 className="font-black text-sm uppercase tracking-widest text-yellow-300">Chef Inteligente</h3>
-        </div>
-
-        {recetaIA ? (
-          <div className="relative z-10 animate-in fade-in zoom-in duration-300">
-            <p className="font-bold text-[13px] leading-snug mb-4 italic">"{recetaIA}"</p>
-            <button onClick={() => setRecetaIA(null)} className="bg-white/20 px-3 py-1.5 rounded-lg text-[10px] uppercase font-black tracking-widest hover:bg-white/30 transition-colors">← Otra Idea</button>
-          </div>
-        ) : (
-          <div className="relative z-10">
-            <p className="font-bold text-sm leading-snug mb-5">Tienes {porVencer.length} cosas por vencer. ¿Hacemos algo rico hoy? ✨</p>
-            <button 
-              onClick={generarRecetaMagica} 
-              disabled={cargandoIA}
-              className="bg-white text-indigo-600 font-black text-xs uppercase tracking-widest px-5 py-3 rounded-xl shadow-md active:scale-95 transition-all w-full flex justify-center disabled:opacity-50"
-            >
-              {cargandoIA ? 'Cocinando idea...' : 'Generar Receta IA'}
-            </button>
-          </div>
-        )}
-      </div>
-    );
+    if (dias < 0) return { titulo: 'VENCIDO', bg: 'bg-gray-100', text: 'text-gray-500', icono: '💀' };
+    if (dias <= 3) return { titulo: '¡URGENTE!', bg: 'bg-red-50', text: 'text-red-700', icono: '🔴' };
+    if (dias <= 7) return { titulo: 'PLANIFICA', bg: 'bg-orange-50', text: 'text-orange-700', icono: '🟠' };
+    return { titulo: 'TRANQUI', bg: 'bg-green-50', text: 'text-green-700', icono: '🟢' };
   };
 
   if (!usuarioActual) {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col justify-center items-center px-6 font-sans">
         <div className="w-full max-w-sm">
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-black tracking-tighter text-gray-900 italic">comidavencida</h1>
-            <p className="text-blue-600 font-bold text-xs uppercase tracking-widest mt-2">No botes tu dinero a la basura</p>
-          </div>
-          <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl border border-gray-100">
-            <div className="flex bg-gray-50 rounded-2xl p-1 mb-8">
-              <button onClick={() => { setModoLogin('crear'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'crear' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Crear</button>
-              <button onClick={() => { setModoLogin('entrar'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'entrar' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Entrar</button>
+          <div className="text-center mb-10 italic font-black text-4xl">comidavencida</div>
+          <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl">
+            <div className="flex bg-gray-50 rounded-2xl p-1 mb-6">
+              <button onClick={() => setModoLogin('crear')} className={`flex-1 py-3 text-sm font-black rounded-xl ${modoLogin === 'crear' ? 'bg-white shadow text-blue-600' : 'text-gray-400'}`}>Crear</button>
+              <button onClick={() => setModoLogin('entrar')} className={`flex-1 py-3 text-sm font-black rounded-xl ${modoLogin === 'entrar' ? 'bg-white shadow text-blue-600' : 'text-gray-400'}`}>Entrar</button>
             </div>
             <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Home size={12}/> ID Despensa</label>
-                <input type="text" placeholder="Ej: FamiliaRojas" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-gray-800" value={inputId} onChange={(e) => setInputId(e.target.value.replace(/\s+/g, ''))} />
-              </div>
-              <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Lock size={12}/> PIN (4 Números)</label>
-                <input type="password" inputMode="numeric" maxLength={4} placeholder="****" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-black text-2xl text-center tracking-[0.5em] text-gray-800" value={inputPin} onChange={(e) => setInputPin(e.target.value.replace(/\D/g, ''))} />
-              </div>
-              {errorAuth && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center">{errorAuth}</div>}
-              <button disabled={cargandoAuth} onClick={manejarAcceso} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl active:scale-95 uppercase tracking-widest text-sm mt-4 disabled:opacity-50">
-                {cargandoAuth ? 'Conectando...' : (modoLogin === 'crear' ? 'Abrir mi Despensa 🚀' : 'Entrar ✅')}
-              </button>
+              <input type="text" placeholder="ID Despensa" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold" value={inputId} onChange={e => setInputId(e.target.value)} />
+              <input type="password" placeholder="PIN (4 n°) " maxLength={4} className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold text-center tracking-widest" value={inputPin} onChange={e => setInputPin(e.target.value)} />
+              <button onClick={manejarAcceso} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl uppercase text-xs">{cargandoAuth ? '...' : 'Entrar'}</button>
             </div>
           </div>
         </div>
@@ -222,46 +148,52 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB] font-sans pb-40 flex flex-col relative">
+    <div className="min-h-screen bg-[#F8F9FB] font-sans pb-40">
       <header className="px-6 pt-12 pb-4 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-gray-900 leading-none">comidavencida</h1>
-          <div className="flex items-center gap-1 mt-1 opacity-60">
-            <Home size={12} className="text-blue-600" />
-            <p className="font-bold text-[10px] uppercase tracking-widest text-gray-800">{usuarioActual.id}</p>
-          </div>
-        </div>
-        <button onClick={cerrarSesion} className="bg-white border border-gray-200 p-2.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all active:scale-95 shadow-sm"><LogOut size={18} /></button>
+        <h1 className="text-2xl font-black italic">comidavencida</h1>
+        <button onClick={cerrarSesion} className="bg-white p-2.5 rounded-full shadow-sm text-gray-400"><LogOut size={18} /></button>
       </header>
 
-      <main className="flex-1 px-6 mt-2">
-        {renderWidgetIA()}
-        <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Semáforo</h2>
-        {productos.length === 0 && (
-          <div className="py-20 text-center opacity-40 border-2 border-dashed border-gray-200 rounded-[2rem]">
-            <p className="text-gray-500 font-bold">Todo al día ☁️</p>
+      <main className="px-6">
+        {/* WIDGET IA */}
+        {productos.filter(p => Math.ceil((new Date(p.fecha)-new Date())/(1000*60*60*24)) <= 7).length > 0 && (
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-[2rem] p-6 shadow-lg mb-6 text-white relative">
+            <Sparkles className="absolute top-2 right-2 text-yellow-300 opacity-50" />
+            <h3 className="font-black text-xs uppercase tracking-widest text-yellow-300 mb-2 flex items-center gap-2"><ChefHat size={16}/> Chef IA</h3>
+            {recetaIA ? (
+              <div className="animate-in fade-in duration-500">
+                <p className="font-bold text-sm leading-snug">"{recetaIA}"</p>
+                <button onClick={() => setRecetaIA(null)} className="mt-3 text-[10px] uppercase font-black opacity-70">← Otra idea</button>
+              </div>
+            ) : (
+              <div>
+                <p className="font-bold text-sm mb-4">¿Qué cocinamos con lo que vence pronto?</p>
+                <button onClick={generarRecetaMagica} disabled={cargandoIA} className="bg-white text-indigo-600 font-black text-[10px] uppercase px-6 py-3 rounded-xl w-full shadow-lg active:scale-95 transition-all">
+                  {cargandoIA ? 'Pensando...' : 'Generar Receta ✨'}
+                </button>
+              </div>
+            )}
           </div>
         )}
+
+        <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Tu Semáforo</h2>
         <div className="space-y-3">
-          {productos.sort((a,b) => new Date(a.fecha) - new Date(b.fecha)).map((p) => {
-            const dias = calcularDias(p.fecha);
-            const est = obtenerEstado(dias);
+          {productos.sort((a,b) => new Date(a.fecha)-new Date(b.fecha)).map(p => {
+            const d = Math.ceil((new Date(p.fecha)-new Date())/(1000*60*60*24));
+            const est = obtenerEstado(d);
             return (
-              <div key={p.id} className={`p-5 rounded-[1.5rem] border-2 flex items-center justify-between transition-all ${est.bg} ${est.border}`}>
-                <div className="flex-1 pr-2">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-[10px]">{est.icono}</span>
-                    <span className={`text-[9px] font-black uppercase tracking-widest ${est.text}`}>{est.titulo}</span>
-                  </div>
-                  <h3 className={`font-black text-[16px] leading-tight ${dias < 0 ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{p.nombre}</h3>
-                  <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">Vence: {p.fecha.split('-').reverse().join('/')}</p>
+              <div key={p.id} className={`p-5 rounded-[1.5rem] border-2 flex items-center justify-between ${est.bg} border-black/5`}>
+                <div className="flex-1">
+                  <span className={`text-[8px] font-black uppercase ${est.text}`}>{est.icono} {est.titulo}</span>
+                  <h3 className={`font-black text-lg ${d < 0 ? 'opacity-30 line-through' : ''}`}>{p.nombre}</h3>
+                  <p className="text-[9px] font-bold text-gray-400 uppercase">Vence: {p.fecha.split('-').reverse().join('/')}</p>
                 </div>
-                <div className="flex items-center gap-3 pl-3 border-l border-black/10">
-                  <div className="text-center min-w-[3rem]">
-                    <span className={`block text-2xl font-black leading-none ${est.text}`}>{Math.abs(dias)}</span>
-                    <span className={`text-[8px] font-black uppercase tracking-widest ${est.text}`}>días</span>
+                <div className="flex items-center gap-4 border-l border-black/5 pl-4">
+                  <div className="text-center">
+                    <span className={`block text-2xl font-black ${est.text}`}>{Math.abs(d)}</span>
+                    <span className={`text-[8px] font-black uppercase opacity-50`}>días</span>
                   </div>
-                  <button onClick={() => borrarItem(p.id)} className="text-gray-400 hover:text-red-500 p-1"><Trash2 size={20} /></button>
+                  <button onClick={() => borrarItem(p.id)} className="text-gray-300 hover:text-red-500"><Trash2 size={18} /></button>
                 </div>
               </div>
             );
@@ -269,35 +201,27 @@ const Dashboard = () => {
         </div>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#F8F9FB] via-[#F8F9FB] to-transparent z-20 flex flex-col gap-3">
-        <button onClick={() => setMostrarForm(true)} className="mx-auto w-12 h-12 bg-white text-gray-600 rounded-full shadow-md flex items-center justify-center border border-gray-100 hover:bg-gray-50"><Plus size={20} strokeWidth={3} /></button>
-        <button onClick={() => setMostrarScanner(true)} className="w-full bg-blue-600 text-white py-5 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><ScanBarcode size={24} /> Escanear Código</button>
+      <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#F8F9FB] to-transparent flex flex-col gap-3">
+        <button onClick={() => setMostrarForm(true)} className="mx-auto w-12 h-12 bg-white rounded-full shadow-md flex items-center justify-center border border-gray-100"><Plus/></button>
+        <button onClick={() => setMostrarScanner(true)} className="w-full bg-blue-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3"><ScanBarcode size={20} /> Escanear Código</button>
       </div>
 
       {mostrarForm && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMostrarForm(false)}></div>
-          <div className="bg-white w-full max-w-md rounded-t-[2.5rem] p-8 pb-12 shadow-2xl relative z-10">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black text-gray-900 italic">Ingreso Manual</h2>
-              <button onClick={() => setMostrarForm(false)} className="bg-gray-100 p-2 rounded-full"><X size={18}/></button>
-            </div>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMostrarForm(false)}></div>
+          <div className="bg-white w-full max-w-md rounded-t-[2.5rem] p-8 shadow-2xl relative">
+            <h2 className="text-2xl font-black mb-6 italic">Nuevo Item</h2>
             <div className="space-y-4">
-              <input type="text" placeholder="Ej: Salsa de Tomate" className="w-full p-5 bg-gray-50 border-none rounded-2xl outline-none font-bold text-gray-800 text-lg transition-all" value={nuevoProd.nombre} onChange={(e) => setNuevoProd({...nuevoProd, nombre: e.target.value})} />
-              <input type="date" className="w-full p-5 bg-gray-50 border-none rounded-2xl outline-none font-bold text-gray-800 text-sm uppercase transition-all" value={nuevoProd.fecha} onChange={(e) => setNuevoProd({...nuevoProd, fecha: e.target.value})} />
-              <button disabled={!nuevoProd.nombre || !nuevoProd.fecha} onClick={agregarItem} className="w-full bg-gray-900 text-white font-black p-5 rounded-2xl shadow-xl disabled:opacity-30 uppercase tracking-widest text-xs mt-2">Guardar</button>
+              <input type="text" placeholder="¿Qué es?" className="w-full p-5 bg-gray-50 rounded-2xl font-bold" value={nuevoProd.nombre} onChange={e => setNuevoProd({...nuevoProd, nombre: e.target.value})} />
+              <input type="date" className="w-full p-5 bg-gray-50 rounded-2xl font-bold uppercase text-xs" value={nuevoProd.fecha} onChange={e => setNuevoProd({...nuevoProd, fecha: e.target.value})} />
+              <button onClick={agregarItem} className="w-full bg-black text-white font-black p-5 rounded-2xl uppercase text-xs">Guardar ✅</button>
             </div>
           </div>
         </div>
       )}
 
       {mostrarScanner && (
-        <Scanner onScan={(codigo) => {
-            setNuevoProd({ ...nuevoProd, nombre: `Cod: ${codigo}` });
-            setMostrarScanner(false);
-            setMostrarForm(true);
-          }} onClose={() => setMostrarScanner(false)} 
-        />
+        <Scanner onScan={(c) => { setNuevoProd({ ...nuevoProd, nombre: `Cod: ${c}` }); setMostrarScanner(false); setMostrarForm(true); }} onClose={() => setMostrarScanner(false)} />
       )}
     </div>
   );
