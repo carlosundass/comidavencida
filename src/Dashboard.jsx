@@ -1,18 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, X, ScanBarcode, ChefHat, Sparkles, Plus, LogOut, Lock, Home } from 'lucide-react';
+import { Trash2, X, ScanBarcode, Plus, LogOut, Lock, Home } from 'lucide-react';
 import Scanner from './Scanner';
 // IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
 import { collection, doc, setDoc, getDoc, addDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
-// IMPORTACIÓN DE LA IA DE GOOGLE
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-// Inicializamos Gemini con tu llave
-const genAI = new GoogleGenerativeAI("AIzaSyDNLXITHL9DeicbOcPtUqKi6aJKisW7Vh4");
 
 const Dashboard = () => {
   // ==========================================
-  // 1. SISTEMA DE AUTENTICACIÓN (DISEÑO PREMIUM)
+  // 1. SISTEMA DE AUTENTICACIÓN
   // ==========================================
   const [usuarioActual, setUsuarioActual] = useState(() => {
     const guardado = localStorage.getItem('cv_usuario_activo');
@@ -73,7 +68,6 @@ const Dashboard = () => {
     setUsuarioActual(null);
     localStorage.removeItem('cv_usuario_activo');
     setProductos([]);
-    setRecetaIA(null);
   };
 
   // ==========================================
@@ -116,76 +110,15 @@ const Dashboard = () => {
   };
 
   // ==========================================
-  // 3. LÓGICA DE LA IA (FIX MODELO ESTABLE)
+  // 3. DISEÑO PREMIUM Y SEMÁFORO
   // ==========================================
-  const [recetaIA, setRecetaIA] = useState(null);
-  const [cargandoIA, setCargandoIA] = useState(false);
-
   const calcularDias = (f) => Math.ceil((new Date(f) - new Date()) / (1000 * 60 * 60 * 24));
 
-  const generarRecetaMagica = async () => {
-    const porVencer = productos.filter(p => calcularDias(p.fecha) >= 0 && calcularDias(p.fecha) <= 7);
-    if (porVencer.length === 0) return;
-
-    const ingredientes = porVencer.map(p => p.nombre).join(', ');
-    const prompt = `Chef chileno experto. Tengo esto por vencer: ${ingredientes}. Dame una idea de receta rápida en un párrafo corto, con tono amigable y chileno. Máximo 3 líneas.`;
-
-    setCargandoIA(true);
-    try {
-      // Usamos gemini-1.5-flash que es el más estable hoy
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      setRecetaIA(response.text());
-    } catch (error) {
-      console.error(error);
-      setRecetaIA("¡El Chef IA se fue a la feria! Intenta de nuevo en un segundo.");
-    } finally {
-      setCargandoIA(false);
-    }
-  };
-
-  // ==========================================
-  // 4. DISEÑO PREMIUM Y SEMÁFORO (RECUPERADO)
-  // ==========================================
   const obtenerEstado = (dias) => {
     if (dias < 0) return { titulo: 'VENCIDO', bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-500', icono: '💀' };
     if (dias <= 3) return { titulo: '¡URGENTE!', bg: 'bg-[#FFEBEE]', border: 'border-[#FFCDD2]', text: 'text-red-700', icono: '🔴' };
     if (dias <= 7) return { titulo: 'PLANIFICA', bg: 'bg-[#FFF3E0]', border: 'border-[#FFE0B2]', text: 'text-orange-700', icono: '🟠' };
     return { titulo: 'TRANQUI', bg: 'bg-[#E8F5E9]', border: 'border-[#C8E6C9]', text: 'text-green-700', icono: '🟢' };
-  };
-
-  const renderWidgetIA = () => {
-    const porVencer = productos.filter(p => calcularDias(p.fecha) >= 0 && calcularDias(p.fecha) <= 7);
-    if (porVencer.length === 0) return null;
-
-    return (
-      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-[2rem] p-6 shadow-lg mb-6 text-white relative overflow-hidden transition-all duration-300">
-        <Sparkles className="absolute top-2 right-2 text-yellow-300 opacity-50" size={40} />
-        <div className="flex items-center gap-2 mb-4 relative z-10">
-          <ChefHat size={20} className="text-yellow-300" />
-          <h3 className="font-black text-sm uppercase tracking-widest text-yellow-300">Chef Inteligente</h3>
-        </div>
-
-        {recetaIA ? (
-          <div className="relative z-10 animate-in fade-in zoom-in duration-300">
-            <p className="font-bold text-[13px] leading-snug mb-4 italic">"{recetaIA}"</p>
-            <button onClick={() => setRecetaIA(null)} className="bg-white/20 px-3 py-1.5 rounded-lg text-[10px] uppercase font-black tracking-widest hover:bg-white/30 transition-colors">← Otra Idea</button>
-          </div>
-        ) : (
-          <div className="relative z-10">
-            <p className="font-bold text-sm leading-snug mb-5">¿Hacemos algo rico con lo que vence pronto? ✨</p>
-            <button 
-              onClick={generarRecetaMagica} 
-              disabled={cargandoIA}
-              className="bg-white text-indigo-600 font-black text-xs uppercase tracking-widest px-5 py-3 rounded-xl shadow-md active:scale-95 transition-all w-full flex justify-center disabled:opacity-50"
-            >
-              {cargandoIA ? 'Pensando idea...' : 'Generar Receta IA'}
-            </button>
-          </div>
-        )}
-      </div>
-    );
   };
 
   // --- RENDER LOGIN ---
@@ -227,7 +160,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-[#F8F9FB] font-sans pb-40 flex flex-col relative">
       <header className="px-6 pt-12 pb-4 flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-gray-900 leading-none">comidavencida</h1>
+          <h1 className="text-2xl font-black tracking-tight text-gray-900 leading-none italic">comidavencida</h1>
           <div className="flex items-center gap-1 mt-1 opacity-60">
             <Home size={12} className="text-blue-600" />
             <p className="font-bold text-[10px] uppercase tracking-widest text-gray-800">{usuarioActual.id}</p>
@@ -237,13 +170,20 @@ const Dashboard = () => {
       </header>
 
       <main className="flex-1 px-6 mt-2">
-        {renderWidgetIA()}
         <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Semáforo</h2>
+
+        {productos.length === 0 && (
+          <div className="py-20 text-center opacity-60 border-2 border-dashed border-gray-200 rounded-[2rem]">
+            <p className="text-gray-500 font-bold text-lg">Todo al día</p>
+            <p className="text-gray-400 text-sm mt-1">Sincronizado en la nube ☁️</p>
+          </div>
+        )}
 
         <div className="space-y-3">
           {productos.sort((a,b) => new Date(a.fecha) - new Date(b.fecha)).map((p) => {
             const dias = calcularDias(p.fecha);
             const est = obtenerEstado(dias);
+            
             return (
               <div key={p.id} className={`p-5 rounded-[1.5rem] border-2 flex items-center justify-between transition-all shadow-sm ${est.bg} ${est.border}`}>
                 <div className="flex-1 pr-2">
@@ -252,8 +192,9 @@ const Dashboard = () => {
                     <span className={`text-[9px] font-black uppercase tracking-widest ${est.text}`}>{est.titulo}</span>
                   </div>
                   <h3 className={`font-black text-[16px] leading-tight ${dias < 0 ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{p.nombre}</h3>
-                  <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">Vence: {p.fecha.split('-').reverse().join('/')}</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">Vence: {p.fecha.split('-').reverse().join('/')}</p>
                 </div>
+                
                 <div className="flex items-center gap-3 pl-3 border-l border-black/10">
                   <div className="text-center min-w-[3rem]">
                     <span className={`block text-2xl font-black leading-none ${est.text}`}>{Math.abs(dias)}</span>
@@ -269,7 +210,7 @@ const Dashboard = () => {
 
       <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#F8F9FB] via-[#F8F9FB] to-transparent z-20 flex flex-col gap-3">
         <button onClick={() => setMostrarForm(true)} className="mx-auto w-12 h-12 bg-white text-gray-600 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 border border-gray-100"><Plus size={20} strokeWidth={3} /></button>
-        <button onClick={() => setMostrarScanner(true)} className="w-full bg-blue-600 text-white py-5 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(37,99,235,0.3)] flex items-center justify-center gap-3 active:scale-95 transition-all"><ScanBarcode size={24} /> Escanear Código</button>
+        <button onClick={() => setMostrarScanner(true)} className="w-full bg-blue-600 text-white py-5 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(37,99,235,0.4)] flex items-center justify-center gap-3 active:scale-95 transition-all"><ScanBarcode size={24} /> Escanear Código</button>
       </div>
 
       {mostrarForm && (
@@ -280,7 +221,7 @@ const Dashboard = () => {
             <div className="space-y-4">
               <input type="text" placeholder="Ej: Salsa de Tomate" className="w-full p-5 bg-gray-50 border-none rounded-2xl outline-none font-bold text-gray-800 text-lg" value={nuevoProd.nombre} onChange={(e) => setNuevoProd({...nuevoProd, nombre: e.target.value})} />
               <input type="date" className="w-full p-5 bg-gray-50 border-none rounded-2xl outline-none font-bold text-gray-800 text-sm uppercase" value={nuevoProd.fecha} onChange={(e) => setNuevoProd({...nuevoProd, fecha: e.target.value})} />
-              <button disabled={!nuevoProd.nombre || !nuevoProd.fecha} onClick={agregarItem} className="w-full bg-gray-900 text-white font-black p-5 rounded-2xl shadow-xl disabled:opacity-30 uppercase tracking-widest text-xs mt-2">Guardar</button>
+              <button disabled={!nuevoProd.nombre || !nuevoProd.fecha} onClick={agregarItem} className="w-full bg-gray-900 text-white font-black p-5 rounded-2xl shadow-xl disabled:opacity-30 active:scale-95 uppercase tracking-widest text-xs mt-2">Guardar</button>
             </div>
           </div>
         </div>
