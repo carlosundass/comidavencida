@@ -1,55 +1,66 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, X, ScanBarcode, ChefHat, Sparkles, Plus, LogOut, Lock, Home } from 'lucide-react';
 import Scanner from './Scanner';
+// IMPORTACIONES DE FIREBASE
+import { db } from './firebase';
+import { collection, doc, setDoc, getDoc, addDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 const Dashboard = () => {
   // ==========================================
-  // 1. SISTEMA DE AUTENTICACIÓN (ID + PIN)
+  // 1. SISTEMA DE AUTENTICACIÓN EN LA NUBE
   // ==========================================
   const [usuarioActual, setUsuarioActual] = useState(() => {
     const guardado = localStorage.getItem('cv_usuario_activo');
     return guardado ? JSON.parse(guardado) : null;
   });
 
-  const [modoLogin, setModoLogin] = useState('crear'); // 'crear' o 'entrar'
+  const [modoLogin, setModoLogin] = useState('crear');
   const [inputId, setInputId] = useState('');
   const [inputPin, setInputPin] = useState('');
   const [errorAuth, setErrorAuth] = useState('');
+  const [cargandoAuth, setCargandoAuth] = useState(false);
 
-  const manejarAcceso = () => {
+  const manejarAcceso = async () => {
     setErrorAuth('');
     const idLimpio = inputId.trim().toLowerCase();
     
     if (idLimpio.length < 3) return setErrorAuth('El ID debe tener al menos 3 letras.');
     if (inputPin.length !== 4) return setErrorAuth('El PIN debe ser de 4 números.');
 
-    // Simulador de Base de Datos Local
-    const baseDatosLocal = JSON.parse(localStorage.getItem('cv_usuarios_db')) || {};
+    setCargandoAuth(true);
+    try {
+      const despensaRef = doc(db, 'despensas', idLimpio);
+      const despensaSnap = await getDoc(despensaRef);
 
-    if (modoLogin === 'crear') {
-      if (baseDatosLocal[idLimpio]) {
-        return setErrorAuth('Ese nombre de despensa ya existe. Elige otro.');
+      if (modoLogin === 'crear') {
+        if (despensaSnap.exists()) {
+          setErrorAuth('Ese nombre de despensa ya existe. Elige otro.');
+        } else {
+          // Guardar nueva despensa en la nube
+          await setDoc(despensaRef, { pin: inputPin, creadaEn: new Date() });
+          iniciarSesion(idLimpio);
+        }
+      } else {
+        if (!despensaSnap.exists()) {
+          setErrorAuth('No encontramos esta despensa.');
+        } else if (despensaSnap.data().pin !== inputPin) {
+          setErrorAuth('El PIN es incorrecto.');
+        } else {
+          iniciarSesion(idLimpio);
+        }
       }
-      // Crear nueva despensa
-      baseDatosLocal[idLimpio] = inputPin;
-      localStorage.setItem('cv_usuarios_db', JSON.stringify(baseDatosLocal));
-      iniciarSesion(idLimpio);
-    } else {
-      // Intentar entrar
-      if (!baseDatosLocal[idLimpio]) {
-        return setErrorAuth('No encontramos esta despensa.');
-      }
-      if (baseDatosLocal[idLimpio] !== inputPin) {
-        return setErrorAuth('El PIN es incorrecto.');
-      }
-      iniciarSesion(idLimpio);
+    } catch (error) {
+      setErrorAuth('Error de conexión. Revisa tu internet.');
+      console.error(error);
+    } finally {
+      setCargandoAuth(false);
     }
   };
 
   const iniciarSesion = (id) => {
     const dataUsuario = { id };
     setUsuarioActual(dataUsuario);
-    localStorage.setItem('cv_usuario_activo', JSON.stringify(dataUsuario));
+    localStorage.setItem('cv_usuario_activo', JSON.stringify(dataUsuario)); // Mantenemos la sesión activa en el celular
     setInputId('');
     setInputPin('');
   };
@@ -57,32 +68,59 @@ const Dashboard = () => {
   const cerrarSesion = () => {
     setUsuarioActual(null);
     localStorage.removeItem('cv_usuario_activo');
+    setProductos([]);
   };
 
   // ==========================================
-  // 2. LÓGICA DE LA DESPENSA (DASHBOARD)
+  // 2. LÓGICA DE LA DESPENSA (TIEMPO REAL)
   // ==========================================
   const [productos, setProductos] = useState([]);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [mostrarScanner, setMostrarScanner] = useState(false);
   const [nuevoProd, setNuevoProd] = useState({ nombre: '', fecha: '' });
 
-  // Cargar productos SOLO del usuario actual
+  // ⚠️ MAGIA: Escuchar cambios en la nube en tiempo real
   useEffect(() => {
     if (usuarioActual) {
-      const guardados = localStorage.getItem(`cv_datos_${usuarioActual.id}`);
-      setProductos(guardados ? JSON.parse(guardados) : []);
+      const itemsRef = collection(db, 'despensas', usuarioActual.id, 'items');
+      
+      // onSnapshot mantiene una conexión viva con Firestore
+      const unsubscribe = onSnapshot(itemsRef, (snapshot) => {
+        const datosMagicos = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setProductos(datosMagicos);
+      });
+
+      return () => unsubscribe(); // Limpiar al salir
     }
   }, [usuarioActual]);
 
-  // Guardar productos del usuario actual
-  useEffect(() => {
-    if (usuarioActual) {
-      localStorage.setItem(`cv_datos_${usuarioActual.id}`, JSON.stringify(productos));
-    }
-  }, [productos, usuarioActual]);
+  // Guardar ítem en la nube
+  const agregarItem = async () => {
+    if (!nuevoProd.nombre || !nuevoProd.fecha) return;
+    
+    const itemsRef = collection(db, 'despensas', usuarioActual.id, 'items');
+    await addDoc(itemsRef, {
+      nombre: nuevoProd.nombre,
+      fecha: nuevoProd.fecha,
+      creadoEn: new Date().getTime()
+    });
+    
+    setNuevoProd({ nombre: '', fecha: '' });
+    setMostrarForm(false);
+  };
 
-  // Cálculos y Diseño
+  // Borrar ítem de la nube
+  const borrarItem = async (itemId) => {
+    const itemRef = doc(db, 'despensas', usuarioActual.id, 'items', itemId);
+    await deleteDoc(itemRef);
+  };
+
+  // ==========================================
+  // 3. DISEÑO Y CÁLCULOS
+  // ==========================================
   const calcularDias = (f) => Math.ceil((new Date(f) - new Date()) / (1000 * 60 * 60 * 24));
 
   const obtenerEstado = (dias) => {
@@ -122,88 +160,42 @@ const Dashboard = () => {
     );
   };
 
-  const agregarItem = () => {
-    if (!nuevoProd.nombre || !nuevoProd.fecha) return;
-    setProductos([...productos, { id: Date.now(), ...nuevoProd }]);
-    setNuevoProd({ nombre: '', fecha: '' });
-    setMostrarForm(false);
-  };
-
 
   // ==========================================
-  // RENDER PANTALLA DE LOGIN / REGISTRO
+  // RENDER PANTALLA DE LOGIN
   // ==========================================
   if (!usuarioActual) {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col justify-center items-center px-6 font-sans">
         <div className="w-full max-w-sm">
-          {/* Logo */}
           <div className="text-center mb-10">
             <h1 className="text-4xl font-black tracking-tighter text-gray-900 italic">comidavencida</h1>
             <p className="text-blue-600 font-bold text-xs uppercase tracking-widest mt-2">No botes tu dinero a la basura</p>
           </div>
 
-          {/* Tarjeta de Login */}
           <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl border border-gray-100">
-            
-            {/* Pestañas (Tabs) */}
             <div className="flex bg-gray-50 rounded-2xl p-1 mb-8">
-              <button 
-                onClick={() => { setModoLogin('crear'); setErrorAuth(''); }}
-                className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'crear' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                Crear Despensa
-              </button>
-              <button 
-                onClick={() => { setModoLogin('entrar'); setErrorAuth(''); }}
-                className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'entrar' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                Ingresar
-              </button>
+              <button onClick={() => { setModoLogin('crear'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'crear' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>Crear Despensa</button>
+              <button onClick={() => { setModoLogin('entrar'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'entrar' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>Ingresar</button>
             </div>
 
             <div className="space-y-4">
-              {/* Input ID */}
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1">
-                  <Home size={12} /> {modoLogin === 'crear' ? 'Inventa un Nombre' : 'Nombre de tu Despensa'}
-                </label>
-                <input 
-                  type="text" 
-                  placeholder="Ej: FamiliaRojas"
-                  className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-gray-800 transition-all"
-                  value={inputId}
-                  onChange={(e) => setInputId(e.target.value.replace(/\s+/g, ''))} // Sin espacios
-                />
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Home size={12} /> {modoLogin === 'crear' ? 'Inventa un Nombre' : 'Nombre de tu Despensa'}</label>
+                <input type="text" placeholder="Ej: FamiliaRojas" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-gray-800" value={inputId} onChange={(e) => setInputId(e.target.value.replace(/\s+/g, ''))} />
               </div>
 
-              {/* Input PIN */}
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1">
-                  <Lock size={12} /> {modoLogin === 'crear' ? 'Crea un PIN (4 números)' : 'Tu PIN secreto'}
-                </label>
-                <input 
-                  type="password" 
-                  inputMode="numeric"
-                  maxLength={4}
-                  placeholder="****"
-                  className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-black text-2xl text-center tracking-[0.5em] text-gray-800 transition-all"
-                  value={inputPin}
-                  onChange={(e) => setInputPin(e.target.value.replace(/\D/g, ''))} // Solo números
-                />
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Lock size={12} /> {modoLogin === 'crear' ? 'Crea un PIN (4 números)' : 'Tu PIN secreto'}</label>
+                <input type="password" inputMode="numeric" maxLength={4} placeholder="****" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-black text-2xl text-center tracking-[0.5em] text-gray-800" value={inputPin} onChange={(e) => setInputPin(e.target.value.replace(/\D/g, ''))} />
               </div>
 
               {errorAuth && (
-                <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center border border-red-100 animate-in shake">
-                  {errorAuth}
-                </div>
+                <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center border border-red-100">{errorAuth}</div>
               )}
 
-              <button 
-                onClick={manejarAcceso}
-                className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm mt-4 transition-transform"
-              >
-                {modoLogin === 'crear' ? 'Abrir mi Despensa 🚀' : 'Entrar ✅'}
+              <button disabled={cargandoAuth} onClick={manejarAcceso} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm mt-4 disabled:opacity-50">
+                {cargandoAuth ? 'Conectando...' : (modoLogin === 'crear' ? 'Abrir mi Despensa 🚀' : 'Entrar ✅')}
               </button>
             </div>
           </div>
@@ -213,12 +205,10 @@ const Dashboard = () => {
   }
 
   // ==========================================
-  // RENDER DEL DASHBOARD (Usuario logueado)
+  // RENDER DEL DASHBOARD
   // ==========================================
   return (
     <div className="min-h-screen bg-[#F8F9FB] font-sans pb-40 flex flex-col relative">
-      
-      {/* HEADER DASHBOARD */}
       <header className="px-6 pt-12 pb-4 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-gray-900 leading-none">comidavencida</h1>
@@ -227,24 +217,17 @@ const Dashboard = () => {
             <p className="font-bold text-[10px] uppercase tracking-widest text-gray-800">{usuarioActual.id}</p>
           </div>
         </div>
-        <button 
-          onClick={cerrarSesion}
-          className="bg-white border border-gray-200 p-2.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all shadow-sm active:scale-95"
-          aria-label="Cerrar sesión"
-        >
-          <LogOut size={18} />
-        </button>
+        <button onClick={cerrarSesion} className="bg-white border border-gray-200 p-2.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all shadow-sm active:scale-95"><LogOut size={18} /></button>
       </header>
 
       <main className="flex-1 px-6 mt-2">
         {generarHackReceta()}
-
         <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Semáforo</h2>
 
         {productos.length === 0 && (
           <div className="py-20 text-center opacity-60 border-2 border-dashed border-gray-200 rounded-[2rem]">
             <p className="text-gray-500 font-bold text-lg">Todo al día</p>
-            <p className="text-gray-400 text-sm mt-1">Escanea tu primera compra.</p>
+            <p className="text-gray-400 text-sm mt-1">Sincronizado en la nube ☁️</p>
           </div>
         )}
 
@@ -269,7 +252,8 @@ const Dashboard = () => {
                     <span className={`block text-2xl font-black leading-none ${est.text}`}>{Math.abs(dias)}</span>
                     <span className={`text-[8px] font-black uppercase tracking-widest ${est.text}`}>{dias < 0 ? 'días' : 'días'}</span>
                   </div>
-                  <button onClick={() => setProductos(productos.filter(x => x.id !== p.id))} className="text-gray-400 hover:text-red-500 p-1"><Trash2 size={20} /></button>
+                  {/* AQUÍ LLAMAMOS A LA FUNCIÓN DE BORRADO DE FIREBASE */}
+                  <button onClick={() => borrarItem(p.id)} className="text-gray-400 hover:text-red-500 p-1"><Trash2 size={20} /></button>
                 </div>
               </div>
             );
@@ -277,17 +261,11 @@ const Dashboard = () => {
         </div>
       </main>
 
-      {/* BOTONES INFERIORES */}
       <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#F8F9FB] via-[#F8F9FB] to-transparent z-20 flex flex-col gap-3">
-        <button onClick={() => setMostrarForm(true)} className="mx-auto w-12 h-12 bg-white text-gray-600 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 border border-gray-100">
-          <Plus size={20} strokeWidth={3} />
-        </button>
-        <button onClick={() => setMostrarScanner(true)} className="w-full bg-blue-600 text-white py-5 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(37,99,235,0.3)] flex items-center justify-center gap-3 active:scale-95 transition-all">
-          <ScanBarcode size={24} /> Escanear Código
-        </button>
+        <button onClick={() => setMostrarForm(true)} className="mx-auto w-12 h-12 bg-white text-gray-600 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 border border-gray-100"><Plus size={20} strokeWidth={3} /></button>
+        <button onClick={() => setMostrarScanner(true)} className="w-full bg-blue-600 text-white py-5 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(37,99,235,0.3)] flex items-center justify-center gap-3 active:scale-95 transition-all"><ScanBarcode size={24} /> Escanear Código</button>
       </div>
 
-      {/* MODAL INGRESO MANUAL */}
       {mostrarForm && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMostrarForm(false)}></div>
@@ -305,7 +283,6 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* ESCÁNER */}
       {mostrarScanner && (
         <Scanner onScan={(codigo) => {
             setNuevoProd({ ...nuevoProd, nombre: `Cod: ${codigo}` });
