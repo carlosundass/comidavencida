@@ -124,6 +124,71 @@ const Dashboard = () => {
   };
 
   // ==========================================
+  // RENDER PANTALLAS LEGALES Y DE CONTACTO
+  // ==========================================
+  
+  if (!usuarioActual && vista === 'privacidad') {
+    return (
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12">
+        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
+        <div className="max-w-2xl mx-auto bg-white p-8 rounded-[2rem] shadow-xl mt-8">
+          <h1 className="text-2xl font-black mb-6 text-gray-900">Política de Privacidad</h1>
+          <div className="text-gray-600 space-y-4 text-sm leading-relaxed">
+            <p><strong>Última actualización: Abril 2026</strong></p>
+            <p>En Comida Vencida App, nos tomamos muy en serio tu privacidad. Esta política explica cómo recopilamos, usamos y protegemos tu información.</p>
+            <h3 className="font-bold text-gray-900">1. Información que recopilamos</h3>
+            <p>No recopilamos información personal identificable como nombres reales, correos electrónicos o números de teléfono. Solo almacenamos el "Nombre de Despensa" y el "PIN" que tú mismo creas para acceder a tu cuenta, además de los datos de los alimentos que ingresas.</p>
+            <h3 className="font-bold text-gray-900">2. Publicidad (Google AdSense)</h3>
+            <p>Utilizamos Google AdSense para mostrar anuncios. Google utiliza cookies para publicar anuncios basados en tus visitas anteriores a nuestra aplicación u otros sitios web de Internet. Puedes inhabilitar la publicidad personalizada visitando la Configuración de anuncios de Google.</p>
+            <h3 className="font-bold text-gray-900">3. Almacenamiento de Datos</h3>
+            <p>Tus datos de inventario se almacenan de forma segura utilizando los servicios en la nube de Google (Firebase). No vendemos ni compartimos tus datos de inventario con terceros.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!usuarioActual && vista === 'terminos') {
+    return (
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12">
+        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
+        <div className="max-w-2xl mx-auto bg-white p-8 rounded-[2rem] shadow-xl mt-8">
+          <h1 className="text-2xl font-black mb-6 text-gray-900">Términos y Condiciones</h1>
+          <div className="text-gray-600 space-y-4 text-sm leading-relaxed">
+            <h3 className="font-bold text-gray-900">1. Servicio 100% Gratuito</h3>
+            <p>Comida Vencida App se ofrece de manera completamente gratuita para todos los usuarios. No existen cargos ocultos, versiones premium ni suscripciones. La plataforma se mantiene operativa gracias a la publicidad mostrada en pantalla.</p>
+            <h3 className="font-bold text-gray-900">2. Aceptación de los Términos</h3>
+            <p>Al acceder y utilizar Comida Vencida App, aceptas estar sujeto a estos Términos y Condiciones. Si no estás de acuerdo, por favor no utilices la aplicación.</p>
+            <h3 className="font-bold text-gray-900">3. Uso de la Aplicación</h3>
+            <p>Comida Vencida es una herramienta de organización personal. Eres responsable de mantener la confidencialidad de tu ID de Despensa y PIN.</p>
+            <h3 className="font-bold text-gray-900">4. Limitación de Responsabilidad</h3>
+            <p>Esta aplicación proporciona cálculos estimativos de fechas de vencimiento. No nos hacemos responsables por alimentos consumidos en mal estado, intoxicaciones, pérdidas económicas o cualquier problema derivado de la información ingresada por el usuario. La revisión del estado real del alimento es responsabilidad exclusiva del usuario.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!usuarioActual && vista === 'contacto') {
+    return (
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12">
+        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
+        <div className="max-w-md mx-auto w-full mt-10">
+          <div className="bg-white p-8 rounded-[2rem] shadow-xl text-center border border-gray-100">
+            <h1 className="text-3xl font-black mb-4 text-gray-900 italic">Contacto</h1>
+            <p className="text-gray-500 text-sm mb-8 leading-relaxed">¿Tienes dudas, sugerencias o encontraste algún error en la aplicación? ¡Nos encantaría escucharte!</p>
+            
+            <a href="mailto:hola@comidavencida.cl" className="inline-block w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm transition-transform">
+              Enviar un correo
+            </a>
+            <p className="mt-6 text-xs text-gray-400">Responderemos lo antes posible.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
   // RENDER PANTALLA 1: PORTADA SEO (LANDING PAGE)
   // ==========================================
   if (!usuarioActual && vista === 'landing') {
@@ -140,11 +205,14 @@ const Dashboard = () => {
         {/* Contenido SEO para el robot de Google */}
         <main className="flex-1 p-6 max-w-2xl mx-auto w-full">
           <div className="text-center mt-8 mb-10">
+            <div className="inline-block bg-green-100 text-green-700 font-black px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest mb-4 shadow-sm">
+              100% Gratuita para siempre
+            </div>
             <h2 className="text-4xl font-black tracking-tight text-gray-900 leading-tight mb-4">
               Evita el desperdicio y <span className="text-blue-600">ahorra dinero</span> en tus compras.
             </h2>
             <p className="text-gray-600 font-medium text-lg leading-relaxed">
-              La herramienta gratuita para organizar tu refrigerador y despensa. Recibe alertas visuales antes de que tus alimentos expiren.
+              La herramienta sin costo para organizar tu refrigerador y despensa. Recibe alertas visuales antes de que tus alimentos expiren.
             </p>
           </div>
 
@@ -180,13 +248,13 @@ const Dashboard = () => {
           </button>
         </main>
 
-        {/* Footer legal (Requisito AdSense) */}
-        <footer className="bg-gray-100 p-6 text-center text-xs text-gray-400 font-medium">
-          <p className="mb-2">© 2026 Comida Vencida App. Todos los derechos reservados.</p>
-          <div className="flex justify-center gap-4">
-            <a href="#" className="hover:underline">Política de Privacidad</a>
-            <a href="#" className="hover:underline">Términos del Servicio</a>
-            <a href="#" className="hover:underline">Contacto</a>
+        {/* Footer legal interactivo (Requisito AdSense) */}
+        <footer className="bg-gray-100 p-6 text-center text-xs text-gray-400 font-medium mt-auto">
+          <p className="mb-4">© 2026 Comida Vencida App. Todos los derechos reservados.</p>
+          <div className="flex justify-center gap-4 flex-wrap">
+            <button onClick={() => setVista('privacidad')} className="hover:text-gray-600 hover:underline transition-colors">Política de Privacidad</button>
+            <button onClick={() => setVista('terminos')} className="hover:text-gray-600 hover:underline transition-colors">Términos del Servicio</button>
+            <button onClick={() => setVista('contacto')} className="hover:text-gray-600 hover:underline transition-colors">Contacto</button>
           </div>
         </footer>
       </div>
@@ -199,7 +267,6 @@ const Dashboard = () => {
   if (!usuarioActual && vista === 'login') {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col justify-center items-center px-6 relative">
-        {/* Botón volver */}
         <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">
           ← Volver
         </button>
@@ -241,7 +308,7 @@ const Dashboard = () => {
   // RENDER PANTALLA 3: DASHBOARD (APP REAL)
   // ==========================================
   return (
-    <div className="min-h-screen bg-[#F8F9FB] pb-40 flex flex-col relative">
+    <div className="min-h-screen bg-[#F8F9FB] font-sans pb-40 flex flex-col relative">
       <header className="px-6 pt-12 pb-4 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-gray-900 leading-none italic">comidavencida</h1>
