@@ -73,7 +73,7 @@ const Dashboard = () => {
     setUsuarioActual(null);
     localStorage.removeItem('cv_usuario_activo');
     setProductos([]);
-    setRecetaIA(null); // Limpiamos la receta al salir
+    setRecetaIA(null);
   };
 
   // ==========================================
@@ -124,26 +124,22 @@ const Dashboard = () => {
   const calcularDias = (f) => Math.ceil((new Date(f) - new Date()) / (1000 * 60 * 60 * 24));
 
   const generarRecetaMagica = async () => {
-    // 1. Buscamos qué cosas están por vencer (hasta en 7 días)
     const porVencer = productos.filter(p => calcularDias(p.fecha) >= 0 && calcularDias(p.fecha) <= 7);
     if (porVencer.length === 0) return;
 
-    // 2. Extraemos solo los nombres separados por comas
     const ingredientes = porVencer.map(p => p.nombre).join(', ');
-
-    // 3. Le damos las instrucciones exactas a la IA
     const prompt = `Soy chileno y estoy tratando de no botar comida a la basura. Tengo estos alimentos que están por vencer pronto: ${ingredientes}. Eres un chef experto en aprovechar sobras de forma creativa. Inventa una idea de comida o cena súper rápida, casera y deliciosa usando algunos o todos estos ingredientes. Responde directamente con la idea en un solo párrafo corto, con un tono muy amigable, motivador y chileno. No uses listas largas.`;
 
     setCargandoIA(true);
     try {
-      // Usamos el modelo más rápido de Google
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const result = await model.generateContent(prompt);
       const response = await result.response;
       setRecetaIA(response.text());
     } catch (error) {
-      console.error(error);
-      setRecetaIA("¡Ups! Parece que el chef IA se quedó dormido. Intenta de nuevo en unos minutos.");
+      console.error("ERROR REAL DE GEMINI:", error);
+      // ESTA ES LA LÍNEA CLAVE QUE CAMBIAMOS
+      setRecetaIA(`Error técnico: ${error.message}`);
     } finally {
       setCargandoIA(false);
     }
@@ -159,7 +155,6 @@ const Dashboard = () => {
     return { titulo: 'TRANQUI', bg: 'bg-[#E8F5E9]', border: 'border-[#C8E6C9]', text: 'text-green-700', icono: '🟢' };
   };
 
-  // EL NUEVO WIDGET INTERACTIVO DE LA IA
   const renderWidgetIA = () => {
     const porVencer = productos.filter(p => calcularDias(p.fecha) >= 0 && calcularDias(p.fecha) <= 7);
     if (porVencer.length === 0) return null;
@@ -256,7 +251,6 @@ const Dashboard = () => {
       </header>
 
       <main className="flex-1 px-6 mt-2">
-        {/* Renderizamos el nuevo Widget Inteligente */}
         {renderWidgetIA()}
         
         <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Semáforo</h2>
