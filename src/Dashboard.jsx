@@ -23,27 +23,27 @@ const Dashboard = () => {
   const manejarAcceso = async () => {
     setErrorAuth('');
     const idLimpio = inputId.trim().toLowerCase();
-    if (idLimpio.length < 3) return setErrorAuth('El ID debe tener al menos 3 letras.');
-    if (inputPin.length !== 4) return setErrorAuth('El PIN debe ser de 4 números.');
+    if (idLimpio.length < 3) return setErrorAuth('Mínimo 3 letras');
+    if (inputPin.length !== 4) return setErrorAuth('PIN de 4 números');
     setCargandoAuth(true);
     try {
       const despensaRef = doc(db, 'despensas', idLimpio);
       const despensaSnap = await getDoc(despensaRef);
       if (modoLogin === 'crear') {
         if (despensaSnap.exists()) {
-          setErrorAuth('Ese nombre de despensa ya existe.');
+          setErrorAuth('Ese nombre ya existe');
         } else {
-          await setDoc(despensaRef, { pin: inputPin, creadaEn: new Date() });
+          await setDoc(despensaRef, { pin: inputPin });
           iniciarSesion(idLimpio);
         }
       } else {
         if (!despensaSnap.exists() || despensaSnap.data().pin !== inputPin) {
-          setErrorAuth('ID o PIN incorrectos.');
+          setErrorAuth('Datos incorrectos');
         } else {
           iniciarSesion(idLimpio);
         }
       }
-    } catch (e) { setErrorAuth('Error de conexión.'); } finally { setCargandoAuth(false); }
+    } catch (e) { setErrorAuth('Error de red'); } finally { setCargandoAuth(false); }
   };
 
   const iniciarSesion = (id) => {
@@ -85,7 +85,7 @@ const Dashboard = () => {
   };
 
   // ==========================================
-  // FIX DE IA: Usando el modelo exacto
+  // LÓGICA DE IA (NUEVA VERSIÓN 2026)
   // ==========================================
   const [recetaIA, setRecetaIA] = useState(null);
   const [cargandoIA, setCargandoIA] = useState(false);
@@ -101,19 +101,19 @@ const Dashboard = () => {
     
     setCargandoIA(true);
     try {
-      // FIX: Forzamos el nombre del modelo a gemini-1.5-flash (el más actual)
+      // FORZAMOS EL MODELO FLASH 1.5 QUE ES EL ESTÁNDAR ACTUAL
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       
-      const prompt = `Actúa como un chef chileno experto. Tengo estos ingredientes por vencer: ${ingredientes}. 
-      Dame una sugerencia de receta muy rápida, casera y en un tono chileno cercano. 
-      Responde en UN SOLO párrafo corto, máximo 3 lineas.`;
+      const prompt = `Chef chileno experto. Tengo esto: ${ingredientes}. 
+      Dame una idea de receta rápida y casera en 3 líneas máximo. Tono chileno.`;
 
       const result = await model.generateContent(prompt);
-      const text = result.response.text();
+      const text = await result.response.text();
       setRecetaIA(text);
     } catch (error) {
       console.error(error);
-      setRecetaIA(`Error: Inténtalo de nuevo, el Chef está ocupado.`);
+      // Si falla, mostramos un mensaje amigable pero intentamos limpiar el error
+      setRecetaIA("¡El Chef IA se fue a la feria! Revisa tu API Key o intenta en un momento.");
     } finally {
       setCargandoIA(false);
     }
@@ -128,7 +128,7 @@ const Dashboard = () => {
 
   if (!usuarioActual) {
     return (
-      <div className="min-h-screen bg-[#F8F9FB] flex flex-col justify-center items-center px-6 font-sans">
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col justify-center items-center px-6">
         <div className="w-full max-w-sm">
           <div className="text-center mb-10 italic font-black text-4xl">comidavencida</div>
           <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl">
@@ -137,9 +137,9 @@ const Dashboard = () => {
               <button onClick={() => setModoLogin('entrar')} className={`flex-1 py-3 text-sm font-black rounded-xl ${modoLogin === 'entrar' ? 'bg-white shadow text-blue-600' : 'text-gray-400'}`}>Entrar</button>
             </div>
             <div className="space-y-4">
-              <input type="text" placeholder="ID Despensa" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold" value={inputId} onChange={e => setInputId(e.target.value)} />
-              <input type="password" placeholder="PIN (4 n°) " maxLength={4} className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold text-center tracking-widest" value={inputPin} onChange={e => setInputPin(e.target.value)} />
-              <button onClick={manejarAcceso} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl uppercase text-xs">{cargandoAuth ? '...' : 'Entrar'}</button>
+              <input type="text" placeholder="Nombre Despensa" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold" value={inputId} onChange={e => setInputId(e.target.value)} />
+              <input type="password" placeholder="PIN (4 n°)" maxLength={4} className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold text-center tracking-widest" value={inputPin} onChange={e => setInputPin(e.target.value)} />
+              <button onClick={manejarAcceso} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl uppercase text-xs">{cargandoAuth ? '...' : 'Entrar'}</button>
             </div>
           </div>
         </div>
@@ -148,14 +148,13 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB] font-sans pb-40">
+    <div className="min-h-screen bg-[#F8F9FB] pb-40">
       <header className="px-6 pt-12 pb-4 flex justify-between items-center">
         <h1 className="text-2xl font-black italic">comidavencida</h1>
         <button onClick={cerrarSesion} className="bg-white p-2.5 rounded-full shadow-sm text-gray-400"><LogOut size={18} /></button>
       </header>
 
       <main className="px-6">
-        {/* WIDGET IA */}
         {productos.filter(p => Math.ceil((new Date(p.fecha)-new Date())/(1000*60*60*24)) <= 7).length > 0 && (
           <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-[2rem] p-6 shadow-lg mb-6 text-white relative">
             <Sparkles className="absolute top-2 right-2 text-yellow-300 opacity-50" />
@@ -176,7 +175,7 @@ const Dashboard = () => {
           </div>
         )}
 
-        <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Tu Semáforo</h2>
+        <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1">Tu Semáforo</h2>
         <div className="space-y-3">
           {productos.sort((a,b) => new Date(a.fecha)-new Date(b.fecha)).map(p => {
             const d = Math.ceil((new Date(p.fecha)-new Date())/(1000*60*60*24));
