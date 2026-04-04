@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, X, ScanBarcode, Plus, LogOut, Lock, Home } from 'lucide-react';
+import { Trash2, X, ScanBarcode, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign } from 'lucide-react';
 import Scanner from './Scanner';
 // IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
@@ -7,13 +7,15 @@ import { collection, doc, setDoc, getDoc, addDoc, deleteDoc, onSnapshot } from '
 
 const Dashboard = () => {
   // ==========================================
-  // 1. SISTEMA DE AUTENTICACIÓN
+  // 1. ESTADOS PRINCIPALES Y AUTENTICACIÓN
   // ==========================================
   const [usuarioActual, setUsuarioActual] = useState(() => {
     const guardado = localStorage.getItem('cv_usuario_activo');
     return guardado ? JSON.parse(guardado) : null;
   });
 
+  // 'landing' (portada SEO), 'login' (pantalla de claves)
+  const [vista, setVista] = useState('landing'); 
   const [modoLogin, setModoLogin] = useState('crear');
   const [inputId, setInputId] = useState('');
   const [inputPin, setInputPin] = useState('');
@@ -68,6 +70,7 @@ const Dashboard = () => {
     setUsuarioActual(null);
     localStorage.removeItem('cv_usuario_activo');
     setProductos([]);
+    setVista('landing'); // Al salir, volvemos a la portada
   };
 
   // ==========================================
@@ -109,17 +112,6 @@ const Dashboard = () => {
     await deleteDoc(itemRef);
   };
 
-  // Activar AdSense
-  useEffect(() => {
-    try {
-      if (usuarioActual && window.adsbygoogle) {
-        window.adsbygoogle.push({});
-      }
-    } catch (e) {
-      console.log("AdSense cargando...");
-    }
-  }, [usuarioActual, productos]);
-
   // ==========================================
   // 3. DISEÑO PREMIUM Y SEMÁFORO
   // ==========================================
@@ -132,29 +124,106 @@ const Dashboard = () => {
     return { titulo: 'TRANQUI', bg: 'bg-[#E8F5E9]', border: 'border-[#C8E6C9]', text: 'text-green-700', icono: '🟢' };
   };
 
-  // --- RENDER LOGIN ---
-  if (!usuarioActual) {
+  // ==========================================
+  // RENDER PANTALLA 1: PORTADA SEO (LANDING PAGE)
+  // ==========================================
+  if (!usuarioActual && vista === 'landing') {
     return (
-      <div className="min-h-screen bg-[#F8F9FB] flex flex-col justify-center items-center px-6 font-sans">
-        <div className="w-full max-w-sm">
+      <div className="min-h-screen bg-[#F8F9FB] font-sans flex flex-col">
+        {/* Cabecera Publica */}
+        <header className="p-6 bg-white shadow-sm flex justify-between items-center">
+          <h1 className="text-2xl font-black italic text-gray-900">comidavencida</h1>
+          <button onClick={() => setVista('login')} className="text-blue-600 font-bold text-sm bg-blue-50 px-4 py-2 rounded-full">
+            Entrar
+          </button>
+        </header>
+
+        {/* Contenido SEO para el robot de Google */}
+        <main className="flex-1 p-6 max-w-2xl mx-auto w-full">
+          <div className="text-center mt-8 mb-10">
+            <h2 className="text-4xl font-black tracking-tight text-gray-900 leading-tight mb-4">
+              Evita el desperdicio y <span className="text-blue-600">ahorra dinero</span> en tus compras.
+            </h2>
+            <p className="text-gray-600 font-medium text-lg leading-relaxed">
+              La herramienta gratuita para organizar tu refrigerador y despensa. Recibe alertas visuales antes de que tus alimentos expiren.
+            </p>
+          </div>
+
+          {/* Tarjetas de valor (Texto para AdSense) */}
+          <div className="space-y-4 mb-10">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
+              <div className="bg-green-100 text-green-600 p-3 rounded-full h-fit"><DollarSign size={24} /></div>
+              <div>
+                <h3 className="font-black text-gray-900 mb-1">Ahorro Inteligente</h3>
+                <p className="text-gray-500 text-sm">Organizar tu despensa evita comprar productos duplicados y reduce drásticamente el dinero que gastas en alimentos que terminan en la basura. Ideal para las familias en Chile.</p>
+              </div>
+            </div>
+            
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
+              <div className="bg-blue-100 text-blue-600 p-3 rounded-full h-fit"><Leaf size={24} /></div>
+              <div>
+                <h3 className="font-black text-gray-900 mb-1">Impacto Ambiental</h3>
+                <p className="text-gray-500 text-sm">El desperdicio de comida es uno de los mayores problemas ecológicos. Al controlar las fechas de caducidad, contribuyes a un planeta más limpio y sostenible.</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
+              <div className="bg-orange-100 text-orange-600 p-3 rounded-full h-fit"><ShieldCheck size={24} /></div>
+              <div>
+                <h3 className="font-black text-gray-900 mb-1">Privacidad Total</h3>
+                <p className="text-gray-500 text-sm">No necesitas correo ni número de teléfono. Crea una sala privada con un PIN seguro y compártela solo con tu familia para actualizar las compras en tiempo real.</p>
+              </div>
+            </div>
+          </div>
+
+          <button onClick={() => setVista('login')} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm flex justify-center items-center gap-2 mb-10">
+            Comenzar Gratis <ArrowRight size={18} />
+          </button>
+        </main>
+
+        {/* Footer legal (Requisito AdSense) */}
+        <footer className="bg-gray-100 p-6 text-center text-xs text-gray-400 font-medium">
+          <p className="mb-2">© 2026 Comida Vencida App. Todos los derechos reservados.</p>
+          <div className="flex justify-center gap-4">
+            <a href="#" className="hover:underline">Política de Privacidad</a>
+            <a href="#" className="hover:underline">Términos del Servicio</a>
+            <a href="#" className="hover:underline">Contacto</a>
+          </div>
+        </footer>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // RENDER PANTALLA 2: LOGIN
+  // ==========================================
+  if (!usuarioActual && vista === 'login') {
+    return (
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col justify-center items-center px-6 font-sans relative">
+        {/* Botón volver */}
+        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1">
+          ← Volver
+        </button>
+
+        <div className="w-full max-w-sm mt-10">
           <div className="text-center mb-10">
             <h1 className="text-4xl font-black tracking-tighter text-gray-900 italic">comidavencida</h1>
-            <p className="text-blue-600 font-bold text-xs uppercase tracking-widest mt-2">No botes tu dinero a la basura</p>
+            <p className="text-blue-600 font-bold text-xs uppercase tracking-widest mt-2">Acceso a Despensa</p>
           </div>
 
           <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl border border-gray-100">
             <div className="flex bg-gray-50 rounded-2xl p-1 mb-8">
-              <button onClick={() => { setModoLogin('crear'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'crear' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>Crear Despensa</button>
+              <button onClick={() => { setModoLogin('crear'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'crear' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>Crear Nueva</button>
               <button onClick={() => { setModoLogin('entrar'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'entrar' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>Ingresar</button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Home size={12} /> ID de Despensa</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Home size={12} /> Nombre de Despensa</label>
                 <input type="text" placeholder="Ej: FamiliaRojas" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-gray-800 transition-all" value={inputId} onChange={(e) => setInputId(e.target.value.replace(/\s+/g, ''))} />
               </div>
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Lock size={12} /> PIN Secreto (4 números)</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Lock size={12} /> PIN (4 números)</label>
                 <input type="password" inputMode="numeric" maxLength={4} placeholder="****" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-black text-2xl text-center tracking-[0.5em] text-gray-800 transition-all" value={inputPin} onChange={(e) => setInputPin(e.target.value.replace(/\D/g, ''))} />
               </div>
               {errorAuth && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center border border-red-100 animate-in fade-in">{errorAuth}</div>}
@@ -169,7 +238,9 @@ const Dashboard = () => {
     );
   }
 
-  // --- RENDER DASHBOARD ---
+  // ==========================================
+  // RENDER PANTALLA 3: DASHBOARD (APP REAL)
+  // ==========================================
   return (
     <div className="min-h-screen bg-[#F8F9FB] font-sans pb-40 flex flex-col relative">
       <header className="px-6 pt-12 pb-4 flex justify-between items-center">
@@ -221,7 +292,7 @@ const Dashboard = () => {
           })}
         </div>
 
-        {/* ÁREA DE PUBLICIDAD GOOGLE ADSENSE INTEGRADA (BANNER HORIZONTAL ESTRICTO) */}
+        {/* ÁREA DE PUBLICIDAD ADSENSE */}
         <div className="mt-8 mb-10 flex justify-center w-full">
           <div className="w-[320px] h-[50px] bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border border-gray-100">
             <ins className="adsbygoogle"
