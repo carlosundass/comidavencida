@@ -118,7 +118,7 @@ const Dashboard = () => {
     } catch (e) {
       console.log("AdSense cargando...");
     }
-  }, [usuarioActual, productos]);
+  }, [usuarioActual]);
 
   // ==========================================
   // 3. DISEÑO PREMIUM Y SEMÁFORO
@@ -171,7 +171,7 @@ const Dashboard = () => {
 
   // --- RENDER DASHBOARD ---
   return (
-    <div className="min-h-screen bg-[#F8F9FB] font-sans pb-64 flex flex-col relative">
+    <div className="min-h-screen bg-[#F8F9FB] font-sans pb-40 flex flex-col relative">
       <header className="px-6 pt-12 pb-4 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-gray-900 leading-none italic">comidavencida</h1>
@@ -220,11 +220,9 @@ const Dashboard = () => {
             );
           })}
         </div>
-      </main>
 
-      {/* ÁREA DE PUBLICIDAD GOOGLE ADSENSE */}
-      <div className="fixed bottom-36 left-0 right-0 px-6 z-20 pointer-events-none">
-        <div className="bg-gray-100 border-2 border-dashed border-gray-200 rounded-[1.5rem] h-[90px] flex items-center justify-center overflow-hidden pointer-events-auto">
+        {/* ÁREA DE PUBLICIDAD GOOGLE ADSENSE INTEGRADA (ESTÁTICA, NO FLOTANTE) */}
+        <div className="mt-8 bg-gray-50 border-2 border-dashed border-gray-200 rounded-[1.5rem] h-[90px] flex items-center justify-center overflow-hidden">
           <ins className="adsbygoogle"
                style={{ display: 'block', width: '100%', height: '90px' }}
                data-ad-client="ca-pub-3386079946838939"
@@ -232,11 +230,15 @@ const Dashboard = () => {
                data-ad-format="horizontal"
                data-full-width-responsive="true"></ins>
         </div>
-      </div>
+      </main>
 
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#F8F9FB] via-[#F8F9FB] to-transparent z-30 flex flex-col gap-3">
-        <button onClick={() => setMostrarForm(true)} className="mx-auto w-12 h-12 bg-white text-gray-600 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 border border-gray-100 transition-colors"><Plus size={20} strokeWidth={3} /></button>
-        <button onClick={() => setMostrarScanner(true)} className="w-full bg-blue-600 text-white py-5 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(37,99,235,0.3)] flex items-center justify-center gap-3 active:scale-95 transition-all"><ScanBarcode size={24} /> Escanear Código</button>
+      <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#F8F9FB] via-[#F8F9FB] to-transparent z-30 flex flex-col gap-3 pointer-events-none">
+        <div className="pointer-events-auto">
+          <button onClick={() => setMostrarForm(true)} className="mx-auto w-12 h-12 bg-white text-gray-600 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 border border-gray-100 transition-colors"><Plus size={20} strokeWidth={3} /></button>
+        </div>
+        <div className="pointer-events-auto">
+          <button onClick={() => setMostrarScanner(true)} className="w-full bg-blue-600 text-white py-5 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(37,99,235,0.3)] flex items-center justify-center gap-3 active:scale-95 transition-all"><ScanBarcode size={24} /> Escanear Código</button>
+        </div>
       </div>
 
       {mostrarForm && (
