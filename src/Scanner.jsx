@@ -1,16 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { X, Zap, AlertCircle, ZoomIn } from 'lucide-react';
+import { X, Zap, AlertCircle, ZoomIn, Camera } from 'lucide-react';
 
 const Scanner = ({ onScan, onClose }) => {
   const scannerRef = useRef(null);
-  const trackRef = useRef(null); // Referencia al lente físico de la cámara
+  const trackRef = useRef(null);
   const [errorCamara, setErrorCamara] = useState('');
   
-  // Estados para el Zoom
+  // Estados para el Zoom y Lógica Manual
   const [zoomSupported, setZoomSupported] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [zoomParams, setZoomParams] = useState({ min: 1, max: 2, step: 0.1 });
+  const [procesando, setProcesando] = useState(false);
 
   useEffect(() => {
     const html5QrCode = new Html5Qrcode("reader-container");
@@ -29,35 +30,35 @@ const Scanner = ({ onScan, onClose }) => {
       ]
     };
 
+    // 1. Iniciamos la cámara en modo automático
     html5QrCode.start(
       { facingMode: "environment" }, 
       config,
       (decodedText) => {
+        // Si lo detecta automáticamente rápido, excelente
         if (scannerRef.current) {
           scannerRef.current.stop().then(() => {
             onScan(decodedText);
           }).catch(console.error);
         }
       },
-      (errorMessage) => { /* Silencio */ }
+      (errorMessage) => { /* Silencio continuo */ }
     ).then(() => {
-      // UNA VEZ QUE LA CÁMARA ENCIENDE, BUSCAMOS EL CONTROL DE ZOOM
+      // 2. Buscamos el lente para habilitar el Zoom
       const videoElement = document.querySelector('#reader-container video');
       if (videoElement && videoElement.srcObject) {
         const track = videoElement.srcObject.getVideoTracks()[0];
         trackRef.current = track;
         
-        // Verificamos si el navegador permite hacer zoom
         if (track.getCapabilities) {
           const capabilities = track.getCapabilities();
           if (capabilities.zoom) {
             setZoomSupported(true);
             setZoomParams({
               min: capabilities.zoom.min || 1,
-              max: capabilities.zoom.max || 3, // Limitamos a 3x para que no se pixele demasiado
+              max: capabilities.zoom.max || 3,
               step: capabilities.zoom.step || 0.1
             });
-            // Establecer el zoom actual
             const settings = track.getSettings();
             setZoomLevel(settings.zoom || capabilities.zoom.min || 1);
           }
@@ -75,7 +76,6 @@ const Scanner = ({ onScan, onClose }) => {
     };
   }, [onScan]);
 
-  // Función para cambiar el zoom en vivo
   const handleZoomChange = (e) => {
     const newZoom = Number(e.target.value);
     setZoomLevel(newZoom);
@@ -84,6 +84,44 @@ const Scanner = ({ onScan, onClose }) => {
         advanced: [{ zoom: newZoom }]
       }).catch(err => console.error("Error aplicando zoom", err));
     }
+  };
+
+  // 3. FUNCIÓN DE CAPTURA MANUAL TIPO FOTO
+  const tomarFotoYAnalizar = () => {
+    setProcesando(true);
+    const video = document.querySelector('#reader-container video');
+    
+    if (!video) {
+      setProcesando(false);
+      return;
+    }
+
+    // Dibujamos el fotograma actual en un lienzo invisible
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Convertimos ese fotograma en una imagen estática y la analizamos
+    canvas.toBlob((blob) => {
+      const file = new File([blob], "captura.jpg", { type: "image/jpeg" });
+      const hiddenScanner = new Html5Qrcode("hidden-reader-manual");
+      
+      hiddenScanner.scanFile(file, false)
+        .then(decodedText => {
+          // ¡Éxito! Apagamos la cámara principal y enviamos el código
+          if (scannerRef.current) {
+            scannerRef.current.stop().catch(e=>e);
+          }
+          onScan(decodedText);
+        })
+        .catch(err => {
+          // Falló la lectura estática
+          alert("El código se ve borroso o incompleto. Intenta enfocarlo mejor y vuelve a presionar.");
+          setProcesando(false);
+        });
+    }, 'image/jpeg');
   };
 
   return (
@@ -113,13 +151,15 @@ const Scanner = ({ onScan, onClose }) => {
 
       {/* Contenedor principal de la cámara */}
       <div className="flex-1 w-full h-full flex items-center justify-center relative bg-black">
-        {/* CSS para forzar que el video ocupe toda la pantalla */}
         <style>{`
           #reader-container video { object-fit: cover !important; width: 100vw !important; height: 100vh !important; }
         `}</style>
         
         <div id="reader-container" className="absolute inset-0 w-full h-full overflow-hidden"></div>
         
+        {/* Lector oculto para el análisis del botón manual */}
+        <div id="hidden-reader-manual" className="hidden"></div>
+
         {/* Overlay estético (Puntas azules y línea roja animada) */}
         <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
           <div className="w-[260px] h-[110px] border-2 border-white/10 rounded-xl relative">
@@ -132,9 +172,9 @@ const Scanner = ({ onScan, onClose }) => {
         </div>
       </div>
 
-      {/* CONTROL DE ZOOM (Solo aparece si el celular lo soporta) */}
+      {/* CONTROL DE ZOOM */}
       {zoomSupported && (
-        <div className="absolute bottom-36 left-0 w-full px-8 z-30 flex justify-center">
+        <div className="absolute bottom-40 left-0 w-full px-8 z-30 flex justify-center pointer-events-auto">
           <div className="flex items-center gap-3 bg-black/60 backdrop-blur-md px-6 py-3 rounded-full border border-white/20 w-full max-w-[280px] shadow-2xl">
             <ZoomIn className="text-gray-300" size={20} />
             <input 
@@ -150,10 +190,19 @@ const Scanner = ({ onScan, onClose }) => {
         </div>
       )}
 
-      {/* Instrucciones inferiores */}
-      <div className="absolute bottom-0 w-full p-8 text-center bg-gradient-to-t from-black via-black/90 to-transparent z-20 pb-12 pointer-events-none">
-        <p className="text-white text-2xl font-black tracking-tight drop-shadow-lg">Enfoca el código</p>
-        <p className="text-gray-400 text-[10px] mt-2 uppercase tracking-[0.2em] font-bold drop-shadow-md">Centra las barras en la línea roja</p>
+      {/* BOTÓN DE CAPTURA MANUAL */}
+      <div className="absolute bottom-0 w-full p-8 flex flex-col items-center bg-gradient-to-t from-black via-black/90 to-transparent z-20 pb-12 pointer-events-auto">
+        <button 
+          onClick={tomarFotoYAnalizar} 
+          disabled={procesando}
+          className="mb-4 bg-white text-black font-black px-10 py-4 rounded-[2rem] shadow-[0_0_30px_rgba(255,255,255,0.3)] active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50"
+        >
+          <Camera size={24} />
+          {procesando ? "Analizando..." : "Escanear"}
+        </button>
+        <p className="text-gray-400 text-[10px] uppercase tracking-[0.2em] font-bold drop-shadow-md text-center">
+          Se detectará solo, o presiona el botón
+        </p>
       </div>
     </div>
   );
