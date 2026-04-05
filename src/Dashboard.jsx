@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, X, ScanBarcode, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign } from 'lucide-react';
+import { Trash2, X, ScanBarcode, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag } from 'lucide-react';
 import Scanner from './Scanner';
 // IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
@@ -78,7 +78,8 @@ const Dashboard = () => {
   const [productos, setProductos] = useState([]);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [mostrarScanner, setMostrarScanner] = useState(false);
-  const [nuevoProd, setNuevoProd] = useState({ nombre: '', fecha: '' });
+  // AHORA INCLUYE EL CAMPO CÓDIGO
+  const [nuevoProd, setNuevoProd] = useState({ nombre: '', codigo: '', fecha: '' });
 
   useEffect(() => {
     if (usuarioActual) {
@@ -99,10 +100,11 @@ const Dashboard = () => {
     const itemsRef = collection(db, 'despensas', usuarioActual.id, 'items');
     await addDoc(itemsRef, {
       nombre: nuevoProd.nombre,
+      codigo: nuevoProd.codigo || '', // Guardamos el código si existe
       fecha: nuevoProd.fecha,
       creadoEn: new Date().getTime()
     });
-    setNuevoProd({ nombre: '', fecha: '' });
+    setNuevoProd({ nombre: '', codigo: '', fecha: '' });
     setMostrarForm(false);
   };
 
@@ -349,7 +351,11 @@ const Dashboard = () => {
                     <span className={`text-[9px] font-black uppercase tracking-widest ${est.text}`}>{est.titulo}</span>
                   </div>
                   <h3 className={`font-black text-[16px] leading-tight ${dias < 0 ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{p.nombre}</h3>
-                  <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">Vence: {p.fecha.split('-').reverse().join('/')}</p>
+                  <div className="flex flex-col mt-1">
+                    <p className="text-[10px] font-bold text-gray-500 uppercase">Vence: {p.fecha.split('-').reverse().join('/')}</p>
+                    {/* MOSTRAMOS EL CÓDIGO SI EL PRODUCTO TIENE UNO */}
+                    {p.codigo && <p className="text-[9px] font-semibold text-gray-400 uppercase mt-0.5"><ScanBarcode size={10} className="inline mr-1"/>{p.codigo}</p>}
+                  </div>
                 </div>
                 
                 <div className="flex items-center gap-3 pl-3 border-l border-black/10">
@@ -384,26 +390,53 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* MODAL DE INGRESO MANUAL / ESCANEO */}
       {mostrarForm && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMostrarForm(false)}></div>
           <div className="bg-white w-full max-w-md rounded-t-[2.5rem] p-8 pb-12 shadow-2xl relative z-10 animate-in slide-in-from-bottom duration-300">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black text-gray-900 italic">Ingreso Manual</h2>
+              <h2 className="text-2xl font-black text-gray-900 italic">Ingresar Producto</h2>
               <button onClick={() => setMostrarForm(false)} className="bg-gray-100 p-2 rounded-full hover:bg-gray-200 transition-colors"><X size={18}/></button>
             </div>
+            
             <div className="space-y-4">
-              <input type="text" placeholder="Ej: Salsa de Tomate" className="w-full p-5 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-gray-800 text-lg transition-all" value={nuevoProd.nombre} onChange={(e) => setNuevoProd({...nuevoProd, nombre: e.target.value})} />
-              <input type="date" className="w-full p-5 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-gray-800 text-sm uppercase transition-all" value={nuevoProd.fecha} onChange={(e) => setNuevoProd({...nuevoProd, fecha: e.target.value})} />
-              <button disabled={!nuevoProd.nombre || !nuevoProd.fecha} onClick={agregarItem} className="w-full bg-gray-900 text-white font-black p-5 rounded-2xl shadow-xl disabled:opacity-30 active:scale-95 uppercase tracking-widest text-xs mt-2 transition-transform">Guardar</button>
+              {/* CAMPO: NOMBRE DEL PRODUCTO */}
+              <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1">
+                  <Tag size={12} /> Nombre del producto
+                </label>
+                <input type="text" placeholder="Ej: Leche Descremada" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-gray-800 text-lg transition-all" value={nuevoProd.nombre} onChange={(e) => setNuevoProd({...nuevoProd, nombre: e.target.value})} />
+              </div>
+
+              {/* CAMPO: CÓDIGO (OPCIONAL) */}
+              <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1">
+                  <ScanBarcode size={12} /> Código (Opcional)
+                </label>
+                <input type="text" placeholder="Ej: 7801234567" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-gray-800 transition-all" value={nuevoProd.codigo} onChange={(e) => setNuevoProd({...nuevoProd, codigo: e.target.value})} />
+              </div>
+
+              {/* CAMPO: FECHA DE VENCIMIENTO */}
+              <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1">
+                  <Calendar size={12} /> Fecha de vencimiento
+                </label>
+                <input type="date" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-gray-800 text-sm uppercase transition-all" value={nuevoProd.fecha} onChange={(e) => setNuevoProd({...nuevoProd, fecha: e.target.value})} />
+              </div>
+
+              <button disabled={!nuevoProd.nombre || !nuevoProd.fecha} onClick={agregarItem} className="w-full bg-gray-900 text-white font-black p-5 rounded-2xl shadow-xl disabled:opacity-30 active:scale-95 uppercase tracking-widest text-xs mt-4 transition-transform">
+                Guardar Producto
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {mostrarScanner && (
-        <Scanner onScan={(codigo) => {
-            setNuevoProd({ ...nuevoProd, nombre: `Cod: ${codigo}` });
+        <Scanner onScan={(codigoDetectado) => {
+            // AHORA EL ESCÁNER LLENA EL CÓDIGO Y DEJA EL NOMBRE VACÍO
+            setNuevoProd({ nombre: '', codigo: codigoDetectado, fecha: '' });
             setMostrarScanner(false);
             setMostrarForm(true);
           }} onClose={() => setMostrarScanner(false)} 
