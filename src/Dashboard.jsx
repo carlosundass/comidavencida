@@ -197,7 +197,10 @@ const Dashboard = () => {
         {/* Cabecera Publica */}
         <header className="p-6 bg-white shadow-sm flex justify-between items-center">
           <h1 className="text-2xl font-black italic text-gray-900">comidavencida</h1>
-          <button onClick={() => setVista('login')} className="text-blue-600 font-bold text-[11px] uppercase tracking-wider bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors">
+          <button 
+            onClick={() => { setVista('login'); setModoLogin('entrar'); }} 
+            className="text-blue-600 font-bold text-[11px] uppercase tracking-wider bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors"
+          >
             Entrar
           </button>
         </header>
@@ -243,8 +246,11 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <button onClick={() => setVista('login')} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm flex justify-center items-center gap-2 mb-10 transition-transform">
-            Crear despenza Gratis <ArrowRight size={18} />
+          <button 
+            onClick={() => { setVista('login'); setModoLogin('crear'); }} 
+            className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm flex justify-center items-center gap-2 mb-10 transition-transform"
+          >
+            Crear despensa Gratis <ArrowRight size={18} />
           </button>
         </main>
 
