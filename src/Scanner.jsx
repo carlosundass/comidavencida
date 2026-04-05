@@ -1,20 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { X, Zap, AlertCircle } from 'lucide-react';
+import { X, Zap, AlertCircle, ZoomIn } from 'lucide-react';
 
 const Scanner = ({ onScan, onClose }) => {
   const scannerRef = useRef(null);
+  const trackRef = useRef(null); // Referencia al lente físico de la cámara
   const [errorCamara, setErrorCamara] = useState('');
+  
+  // Estados para el Zoom
+  const [zoomSupported, setZoomSupported] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [zoomParams, setZoomParams] = useState({ min: 1, max: 2, step: 0.1 });
 
   useEffect(() => {
-    // Usamos un ID nuevo para no arrastrar estilos antiguos
     const html5QrCode = new Html5Qrcode("reader-container");
     scannerRef.current = html5QrCode;
 
-    // Configuración optimizada para códigos de barras
     const config = {
       fps: 15,
-      // qrbox recorta internamente la imagen: hace que escanee MUCHO más rápido
       qrbox: { width: 250, height: 100 }, 
       aspectRatio: 1.0, 
       formatsToSupport: [
@@ -27,21 +30,40 @@ const Scanner = ({ onScan, onClose }) => {
     };
 
     html5QrCode.start(
-      // Quitamos el focusMode avanzado para que no crashee en iOS/Safari
       { facingMode: "environment" }, 
       config,
       (decodedText) => {
-        // Al detectar el código, apagamos la cámara y enviamos el texto
         if (scannerRef.current) {
           scannerRef.current.stop().then(() => {
             onScan(decodedText);
           }).catch(console.error);
         }
       },
-      (errorMessage) => {
-        // Silencio: es normal que lance errores en los frames donde no hay código
+      (errorMessage) => { /* Silencio */ }
+    ).then(() => {
+      // UNA VEZ QUE LA CÁMARA ENCIENDE, BUSCAMOS EL CONTROL DE ZOOM
+      const videoElement = document.querySelector('#reader-container video');
+      if (videoElement && videoElement.srcObject) {
+        const track = videoElement.srcObject.getVideoTracks()[0];
+        trackRef.current = track;
+        
+        // Verificamos si el navegador permite hacer zoom
+        if (track.getCapabilities) {
+          const capabilities = track.getCapabilities();
+          if (capabilities.zoom) {
+            setZoomSupported(true);
+            setZoomParams({
+              min: capabilities.zoom.min || 1,
+              max: capabilities.zoom.max || 3, // Limitamos a 3x para que no se pixele demasiado
+              step: capabilities.zoom.step || 0.1
+            });
+            // Establecer el zoom actual
+            const settings = track.getSettings();
+            setZoomLevel(settings.zoom || capabilities.zoom.min || 1);
+          }
+        }
       }
-    ).catch((err) => {
+    }).catch((err) => {
       console.error("Error al iniciar cámara:", err);
       setErrorCamara("Para usar la cámara, debes darle permisos o estar en una conexión segura (HTTPS).");
     });
@@ -53,15 +75,26 @@ const Scanner = ({ onScan, onClose }) => {
     };
   }, [onScan]);
 
+  // Función para cambiar el zoom en vivo
+  const handleZoomChange = (e) => {
+    const newZoom = Number(e.target.value);
+    setZoomLevel(newZoom);
+    if (trackRef.current) {
+      trackRef.current.applyConstraints({
+        advanced: [{ zoom: newZoom }]
+      }).catch(err => console.error("Error aplicando zoom", err));
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[1000] bg-black flex flex-col font-sans overflow-hidden">
       {/* Cabecera */}
-      <div className="flex justify-between items-center p-6 text-white absolute top-0 w-full z-20 bg-gradient-to-b from-black/80 to-transparent">
-        <div className="flex items-center gap-2">
+      <div className="flex justify-between items-center p-6 text-white absolute top-0 w-full z-20 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
+        <div className="flex items-center gap-2 pointer-events-auto">
           <Zap className="text-yellow-400" size={20} />
           <span className="font-black tracking-widest text-sm uppercase shadow-black drop-shadow-md">Escaneando</span>
         </div>
-        <button onClick={onClose} className="bg-white/20 p-2.5 rounded-full hover:bg-white/30 transition-colors backdrop-blur-md">
+        <button onClick={onClose} className="pointer-events-auto bg-white/20 p-2.5 rounded-full hover:bg-white/30 transition-colors backdrop-blur-md">
           <X size={20} />
         </button>
       </div>
@@ -80,7 +113,12 @@ const Scanner = ({ onScan, onClose }) => {
 
       {/* Contenedor principal de la cámara */}
       <div className="flex-1 w-full h-full flex items-center justify-center relative bg-black">
-        <div id="reader-container" className="w-full max-w-md overflow-hidden rounded-2xl"></div>
+        {/* CSS para forzar que el video ocupe toda la pantalla */}
+        <style>{`
+          #reader-container video { object-fit: cover !important; width: 100vw !important; height: 100vh !important; }
+        `}</style>
+        
+        <div id="reader-container" className="absolute inset-0 w-full h-full overflow-hidden"></div>
         
         {/* Overlay estético (Puntas azules y línea roja animada) */}
         <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
@@ -94,10 +132,28 @@ const Scanner = ({ onScan, onClose }) => {
         </div>
       </div>
 
+      {/* CONTROL DE ZOOM (Solo aparece si el celular lo soporta) */}
+      {zoomSupported && (
+        <div className="absolute bottom-36 left-0 w-full px-8 z-30 flex justify-center">
+          <div className="flex items-center gap-3 bg-black/60 backdrop-blur-md px-6 py-3 rounded-full border border-white/20 w-full max-w-[280px] shadow-2xl">
+            <ZoomIn className="text-gray-300" size={20} />
+            <input 
+              type="range" 
+              min={zoomParams.min} 
+              max={zoomParams.max} 
+              step={zoomParams.step} 
+              value={zoomLevel} 
+              onChange={handleZoomChange}
+              className="w-full accent-blue-500 bg-gray-600 rounded-lg appearance-none h-1.5"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Instrucciones inferiores */}
       <div className="absolute bottom-0 w-full p-8 text-center bg-gradient-to-t from-black via-black/90 to-transparent z-20 pb-12 pointer-events-none">
         <p className="text-white text-2xl font-black tracking-tight drop-shadow-lg">Enfoca el código</p>
-        <p className="text-gray-400 text-[10px] mt-2 uppercase tracking-[0.2em] font-bold drop-shadow-md">Aléjate un poco si se ve borroso</p>
+        <p className="text-gray-400 text-[10px] mt-2 uppercase tracking-[0.2em] font-bold drop-shadow-md">Centra las barras en la línea roja</p>
       </div>
     </div>
   );
