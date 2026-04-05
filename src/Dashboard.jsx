@@ -244,7 +244,7 @@ const Dashboard = () => {
           </div>
 
           <button onClick={() => setVista('login')} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm flex justify-center items-center gap-2 mb-10 transition-transform">
-            ComeCrear despenza Gratis <ArrowRight size={18} />
+            Crear despenza Gratis <ArrowRight size={18} />
           </button>
         </main>
 
