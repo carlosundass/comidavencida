@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, X, ScanBarcode, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2 } from 'lucide-react';
 import Scanner from './Scanner';
-import QRCode from 'react-qr-code'; // NUEVA LIBRERÍA
+import QRCode from 'react-qr-code';
 // IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
 import { collection, doc, setDoc, getDoc, addDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
@@ -24,7 +24,7 @@ const Dashboard = () => {
 
   const [tabActivo, setTabActivo] = useState('comida');
 
-  // NUEVOS ESTADOS PARA EL QR
+  // ESTADOS PARA EL QR
   const [mostrarQRCompartir, setMostrarQRCompartir] = useState(false);
   const [mostrarScannerLogin, setMostrarScannerLogin] = useState(false);
 
@@ -65,7 +65,7 @@ const Dashboard = () => {
   };
 
   const iniciarSesion = (id, pin) => {
-    const dataUsuario = { id, pin }; // Guardamos el PIN en local para poder armar el QR luego
+    const dataUsuario = { id, pin }; // Guardamos el PIN para armar el QR luego
     setUsuarioActual(dataUsuario);
     localStorage.setItem('cv_usuario_activo', JSON.stringify(dataUsuario));
     setInputId('');
@@ -182,48 +182,141 @@ const Dashboard = () => {
   };
 
   // ==========================================
-  // RENDER PANTALLAS LEGALES Y LANDING (Sin cambios)
+  // RENDER PANTALLAS LEGALES Y DE CONTACTO
   // ==========================================
-  if (!usuarioActual && vista === 'privacidad') { /* ... */ return <div className="p-6">Política</div>; }
-  if (!usuarioActual && vista === 'terminos') { /* ... */ return <div className="p-6">Términos</div>; }
-  if (!usuarioActual && vista === 'contacto') { /* ... */ return <div className="p-6">Contacto</div>; }
+  
+  if (!usuarioActual && vista === 'privacidad') {
+    return (
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12">
+        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
+        <div className="max-w-2xl mx-auto bg-white p-8 rounded-[2rem] shadow-xl mt-8">
+          <h1 className="text-2xl font-black mb-6 text-gray-900">Política de Privacidad</h1>
+          <div className="text-gray-600 space-y-4 text-sm leading-relaxed">
+            <p><strong>Última actualización: Abril 2026</strong></p>
+            <p>En Comida Vencida App, nos tomamos muy en serio tu privacidad. Esta política explica cómo recopilamos, usamos y protegemos tu información.</p>
+            <h3 className="font-bold text-gray-900">1. Información que recopilamos</h3>
+            <p>No recopilamos información personal identificable como nombres reales, correos electrónicos o números de teléfono. Solo almacenamos el "Nombre de Despensa" y el "PIN" que tú mismo creas para acceder a tu cuenta, además de los datos de los alimentos que ingresas.</p>
+            <h3 className="font-bold text-gray-900">2. Publicidad (Google AdSense)</h3>
+            <p>Utilizamos Google AdSense para mostrar anuncios. Google utiliza cookies para publicar anuncios basados en tus visitas anteriores a nuestra aplicación u otros sitios web de Internet. Puedes inhabilitar la publicidad personalizada visitando la Configuración de anuncios de Google.</p>
+            <h3 className="font-bold text-gray-900">3. Almacenamiento de Datos</h3>
+            <p>Tus datos de inventario se almacenan de forma segura utilizando los servicios en la nube de Google (Firebase). No vendemos ni compartimos tus datos de inventario con terceros.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
+  if (!usuarioActual && vista === 'terminos') {
+    return (
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12">
+        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
+        <div className="max-w-2xl mx-auto bg-white p-8 rounded-[2rem] shadow-xl mt-8">
+          <h1 className="text-2xl font-black mb-6 text-gray-900">Términos y Condiciones</h1>
+          <div className="text-gray-600 space-y-4 text-sm leading-relaxed">
+            <h3 className="font-bold text-gray-900">1. Servicio 100% Gratuito</h3>
+            <p>Comida Vencida App se ofrece de manera completamente gratuita para todos los usuarios. No existen cargos ocultos, versiones premium ni suscripciones. La plataforma se mantiene operativa gracias a la publicidad mostrada en pantalla.</p>
+            <h3 className="font-bold text-gray-900">2. Aceptación de los Términos</h3>
+            <p>Al acceder y utilizar Comida Vencida App, aceptas estar sujeto a estos Términos y Condiciones. Si no estás de acuerdo, por favor no utilices la aplicación.</p>
+            <h3 className="font-bold text-gray-900">3. Uso de la Aplicación</h3>
+            <p>Comida Vencida es una herramienta de organización personal. Eres responsable de mantener la confidencialidad de tu ID de Despensa y PIN.</p>
+            <h3 className="font-bold text-gray-900">4. Limitación de Responsabilidad</h3>
+            <p>Esta aplicación proporciona cálculos estimativos de fechas de vencimiento. No nos hacemos responsables por alimentos consumidos en mal estado, intoxicaciones, pérdidas económicas o cualquier problema derivado de la información ingresada por el usuario. La revisión del estado real del alimento es responsabilidad exclusiva del usuario.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!usuarioActual && vista === 'contacto') {
+    return (
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12">
+        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
+        <div className="max-w-md mx-auto w-full mt-10">
+          <div className="bg-white p-8 rounded-[2rem] shadow-xl text-center border border-gray-100">
+            <h1 className="text-3xl font-black mb-4 text-gray-900 italic">Contacto</h1>
+            <p className="text-gray-500 text-sm mb-8 leading-relaxed">¿Tienes dudas, sugerencias o encontraste algún error en la aplicación? ¡Nos encantaría escucharte!</p>
+            <a href="mailto:hola@comidavencida.cl" className="inline-block w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm transition-transform">
+              Enviar un correo
+            </a>
+            <p className="mt-6 text-xs text-gray-400">Responderemos lo antes posible.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // RENDER PANTALLA 1: PORTADA SEO (LANDING PAGE)
+  // ==========================================
   if (!usuarioActual && vista === 'landing') {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col">
+        {/* Cabecera Publica */}
         <header className="p-6 bg-white shadow-sm flex justify-between items-center">
           <h1 className="text-2xl font-black italic text-gray-900">comidavencida</h1>
-          <button onClick={() => { setVista('login'); setModoLogin('entrar'); }} className="text-blue-600 font-bold text-[11px] uppercase tracking-wider bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors">Entrar</button>
+          <button 
+            onClick={() => { setVista('login'); setModoLogin('entrar'); }} 
+            className="text-blue-600 font-bold text-[11px] uppercase tracking-wider bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors"
+          >
+            Entrar
+          </button>
         </header>
+
+        {/* Contenido SEO para el robot de Google */}
         <main className="flex-1 p-6 max-w-2xl mx-auto w-full">
           <div className="text-center mt-8 mb-10">
-            <div className="inline-block bg-green-100 text-green-700 font-black px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest mb-4 shadow-sm">100% Gratuita para siempre</div>
-            <h2 className="text-4xl font-black tracking-tight text-gray-900 leading-tight mb-4">Evita el desperdicio y <span className="text-blue-600">ahorra dinero</span>.</h2>
-            <p className="text-gray-600 font-medium text-lg leading-relaxed">La herramienta sin costo para organizar tu refrigerador y tu botiquín en casa.</p>
+            <div className="inline-block bg-green-100 text-green-700 font-black px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest mb-4 shadow-sm">
+              100% Gratuita para siempre
+            </div>
+            <h2 className="text-4xl font-black tracking-tight text-gray-900 leading-tight mb-4">
+              Evita el desperdicio y <span className="text-blue-600">ahorra dinero</span> en tus compras.
+            </h2>
+            <p className="text-gray-600 font-medium text-lg leading-relaxed">
+              La herramienta sin costo para organizar tu refrigerador y despensa. Recibe alertas visuales antes de que tus alimentos expiren.
+            </p>
           </div>
+
+          {/* Tarjetas de valor (Texto para AdSense) */}
           <div className="space-y-4 mb-10">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
               <div className="bg-green-100 text-green-600 p-3 rounded-full h-fit"><DollarSign size={24} /></div>
               <div>
                 <h3 className="font-black text-gray-900 mb-1">Ahorro Inteligente</h3>
-                <p className="text-gray-500 text-sm">Organiza tu despensa para no comprar productos duplicados.</p>
+                <p className="text-gray-500 text-sm">Organizar tu despensa evita comprar productos duplicados y reduce drásticamente el dinero que gastas en alimentos que terminan en la basura. Ideal para las familias en Chile.</p>
               </div>
             </div>
+            
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
-              <div className="bg-indigo-100 text-indigo-600 p-3 rounded-full h-fit"><Pill size={24} /></div>
+              <div className="bg-blue-100 text-blue-600 p-3 rounded-full h-fit"><Leaf size={24} /></div>
               <div>
-                <h3 className="font-black text-gray-900 mb-1">Control de Botiquín</h3>
-                <p className="text-gray-500 text-sm">Registra tus medicamentos, evita consumirlos vencidos y configura alarmas de tomas.</p>
+                <h3 className="font-black text-gray-900 mb-1">Impacto Ambiental</h3>
+                <p className="text-gray-500 text-sm">El desperdicio de comida es uno de los mayores problemas ecológicos. Al controlar las fechas de caducidad, contribuyes a un planeta más limpio y sostenible.</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
+              <div className="bg-orange-100 text-orange-600 p-3 rounded-full h-fit"><ShieldCheck size={24} /></div>
+              <div>
+                <h3 className="font-black text-gray-900 mb-1">Privacidad Total</h3>
+                <p className="text-gray-500 text-sm">No necesitas correo ni número de teléfono. Crea una sala privada con un PIN seguro y compártela solo con tu familia para actualizar las compras en tiempo real.</p>
               </div>
             </div>
           </div>
-          <button onClick={() => { setVista('login'); setModoLogin('crear'); }} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm flex justify-center items-center gap-2 mb-10 transition-transform">Crear cuenta Gratis <ArrowRight size={18} /></button>
+
+          <button 
+            onClick={() => { setVista('login'); setModoLogin('crear'); }} 
+            className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm flex justify-center items-center gap-2 mb-10 transition-transform"
+          >
+            Crear despensa Gratis <ArrowRight size={18} />
+          </button>
         </main>
+
+        {/* Footer legal interactivo (Requisito AdSense) */}
         <footer className="bg-gray-100 p-6 text-center text-xs text-gray-400 font-medium mt-auto">
           <p className="mb-4">© 2026 Comida Vencida App. Todos los derechos reservados.</p>
           <div className="flex justify-center gap-4 flex-wrap">
-            <button onClick={() => setVista('privacidad')} className="hover:text-gray-600 hover:underline transition-colors">Privacidad</button>
-            <button onClick={() => setVista('terminos')} className="hover:text-gray-600 hover:underline transition-colors">Términos</button>
+            <button onClick={() => setVista('privacidad')} className="hover:text-gray-600 hover:underline transition-colors">Política de Privacidad</button>
+            <button onClick={() => setVista('terminos')} className="hover:text-gray-600 hover:underline transition-colors">Términos del Servicio</button>
             <button onClick={() => setVista('contacto')} className="hover:text-gray-600 hover:underline transition-colors">Contacto</button>
           </div>
         </footer>
@@ -231,35 +324,45 @@ const Dashboard = () => {
     );
   }
 
+  // ==========================================
+  // RENDER PANTALLA 2: LOGIN CON QR
+  // ==========================================
   if (!usuarioActual && vista === 'login') {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col justify-center items-center px-6 relative">
-        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
+        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">
+          ← Volver
+        </button>
+
         <div className="w-full max-w-sm mt-10">
           <div className="text-center mb-10">
             <h1 className="text-4xl font-black tracking-tighter text-gray-900 italic">comidavencida</h1>
+            <p className="text-blue-600 font-bold text-xs uppercase tracking-widest mt-2">Acceso a Despensa</p>
           </div>
+
           <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl border border-gray-100">
             <div className="flex bg-gray-50 rounded-2xl p-1 mb-8">
               <button onClick={() => { setModoLogin('crear'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'crear' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>Crear Nueva</button>
               <button onClick={() => { setModoLogin('entrar'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'entrar' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>Ingresar</button>
             </div>
+
             <div className="space-y-4">
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Home size={12} /> Nombre del Hogar</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Home size={12} /> Nombre de Despensa</label>
                 <input type="text" placeholder="Ej: FamiliaRojas" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-gray-800 transition-all" value={inputId} onChange={(e) => setInputId(e.target.value.replace(/\s+/g, ''))} />
               </div>
               <div>
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Lock size={12} /> PIN (4 números)</label>
                 <input type="password" inputMode="numeric" maxLength={4} placeholder="****" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-black text-2xl text-center tracking-[0.5em] text-gray-800 transition-all" value={inputPin} onChange={(e) => setInputPin(e.target.value.replace(/\D/g, ''))} />
               </div>
-              {errorAuth && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center border border-red-100">{errorAuth}</div>}
+              {errorAuth && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center border border-red-100 animate-in fade-in">{errorAuth}</div>}
+              
               <button disabled={cargandoAuth} onClick={manejarAcceso} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm mt-4 disabled:opacity-50 transition-transform">
                 {cargandoAuth ? 'Conectando...' : (modoLogin === 'crear' ? 'Abrir mi Despensa 🚀' : 'Entrar ✅')}
               </button>
             </div>
 
-            {/* SECCIÓN DEL ESCÁNER PARA INVITADOS */}
+            {/* SECCIÓN DEL ESCÁNER PARA INVITADOS (QR) */}
             <div className="mt-8 pt-6 border-t border-gray-100">
               <p className="text-center text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">O entrar con invitación</p>
               <button onClick={() => setMostrarScannerLogin(true)} className="w-full bg-white border-2 border-dashed border-gray-300 text-gray-600 font-black p-4 rounded-2xl flex justify-center items-center gap-2 hover:bg-gray-50 active:scale-95 transition-all">
