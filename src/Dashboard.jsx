@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, X, ScanBarcode, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2 } from 'lucide-react';
 import Scanner from './Scanner';
-import QRCode from 'react-qr-code';
 // IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
 import { collection, doc, setDoc, getDoc, addDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
@@ -384,6 +383,11 @@ const Dashboard = () => {
   // ==========================================
   // RENDER PANTALLA 3: DASHBOARD PRINCIPAL
   // ==========================================
+  
+  // VARIABLE SEGURA PARA EL CÓDIGO QR
+  const qrData = `CV-LOGIN|${usuarioActual?.id || 'error'}|${usuarioActual?.pin || '0000'}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrData)}`;
+
   return (
     <div className="min-h-screen bg-[#F8F9FB] font-sans pb-40 flex flex-col relative">
       <header className="px-6 pt-12 pb-4 flex justify-between items-center sticky top-0 bg-[#F8F9FB] z-20">
@@ -534,7 +538,7 @@ const Dashboard = () => {
       </nav>
 
       {/* =========================================
-          MODAL: COMPARTIR CÓDIGO QR
+          MODAL: COMPARTIR CÓDIGO QR (SOLUCIÓN SEGURA)
           ========================================= */}
       {mostrarQRCompartir && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
@@ -544,9 +548,9 @@ const Dashboard = () => {
             <h2 className="text-2xl font-black text-gray-900 italic mb-2">Invitar Familiar</h2>
             <p className="text-gray-500 text-sm mb-6 leading-relaxed">Que escaneen este código desde la pantalla inicial para entrar juntos a la despensa.</p>
             
-            <div className="bg-white p-4 rounded-3xl shadow-sm border-4 border-gray-50 mb-4 inline-block">
-              {/* Formato de la data: CV-LOGIN|id|pin */}
-              <QRCode value={`CV-LOGIN|${usuarioActual.id}|${usuarioActual.pin}`} size={180} />
+            <div className="bg-white p-4 rounded-3xl shadow-sm border-4 border-gray-50 mb-4 inline-block flex items-center justify-center min-h-[180px] min-w-[180px]">
+              {/* IMAGEN DEL QR GENERADA POR API EXTERNA */}
+              <img src={qrUrl} alt="QR Familiar" className="w-[180px] h-[180px]" />
             </div>
             
             <p className="text-blue-600 font-black text-xl uppercase tracking-widest mt-2">{usuarioActual.id}</p>
