@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, X, ScanBarcode, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag } from 'lucide-react';
+import { Trash2, X, ScanBarcode, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, PawPrint, Pill } from 'lucide-react';
 import Scanner from './Scanner';
 // IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
@@ -20,6 +20,9 @@ const Dashboard = () => {
   const [inputPin, setInputPin] = useState('');
   const [errorAuth, setErrorAuth] = useState('');
   const [cargandoAuth, setCargandoAuth] = useState(false);
+
+  // NUEVO: ESTADO PARA EL MENÚ INFERIOR
+  const [tabActivo, setTabActivo] = useState('comida');
 
   const manejarAcceso = async () => {
     setErrorAuth('');
@@ -63,6 +66,7 @@ const Dashboard = () => {
     localStorage.setItem('cv_usuario_activo', JSON.stringify(dataUsuario));
     setInputId('');
     setInputPin('');
+    setTabActivo('comida'); // Al iniciar sesión, va a la pestaña Comida
   };
 
   const cerrarSesion = () => {
@@ -73,12 +77,11 @@ const Dashboard = () => {
   };
 
   // ==========================================
-  // 2. LÓGICA DE LA DESPENSA (FIREBASE)
+  // 2. LÓGICA DE LA DESPENSA (COMIDA)
   // ==========================================
   const [productos, setProductos] = useState([]);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [mostrarScanner, setMostrarScanner] = useState(false);
-  // AHORA INCLUYE EL CAMPO CÓDIGO
   const [nuevoProd, setNuevoProd] = useState({ nombre: '', codigo: '', fecha: '' });
 
   useEffect(() => {
@@ -100,7 +103,7 @@ const Dashboard = () => {
     const itemsRef = collection(db, 'despensas', usuarioActual.id, 'items');
     await addDoc(itemsRef, {
       nombre: nuevoProd.nombre,
-      codigo: nuevoProd.codigo || '', // Guardamos el código si existe
+      codigo: nuevoProd.codigo || '',
       fecha: nuevoProd.fecha,
       creadoEn: new Date().getTime()
     });
@@ -113,9 +116,6 @@ const Dashboard = () => {
     await deleteDoc(itemRef);
   };
 
-  // ==========================================
-  // 3. DISEÑO PREMIUM Y SEMÁFORO
-  // ==========================================
   const calcularDias = (f) => Math.ceil((new Date(f) - new Date()) / (1000 * 60 * 60 * 24));
 
   const obtenerEstado = (dias) => {
@@ -126,7 +126,7 @@ const Dashboard = () => {
   };
 
   // ==========================================
-  // RENDER PANTALLAS LEGALES Y DE CONTACTO
+  // RENDER PANTALLAS LEGALES Y DE CONTACTO (Sin cambios)
   // ==========================================
   
   if (!usuarioActual && vista === 'privacidad') {
@@ -329,46 +329,85 @@ const Dashboard = () => {
       </header>
 
       <main className="flex-1 px-6 mt-2">
-        <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Semáforo</h2>
+        {/* =========================================
+            PESTAÑA 1: COMIDA (TU LÓGICA ORIGINAL)
+            ========================================= */}
+        {tabActivo === 'comida' && (
+          <div className="animate-in fade-in duration-300">
+            <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Semáforo</h2>
 
-        {productos.length === 0 && (
-          <div className="py-20 text-center opacity-60 border-2 border-dashed border-gray-200 rounded-[2rem]">
-            <p className="text-gray-500 font-bold text-lg">Todo al día</p>
-            <p className="text-gray-400 text-sm mt-1">Sincronizado en la nube ☁️</p>
+            {productos.length === 0 && (
+              <div className="py-20 text-center opacity-60 border-2 border-dashed border-gray-200 rounded-[2rem]">
+                <p className="text-gray-500 font-bold text-lg">Todo al día</p>
+                <p className="text-gray-400 text-sm mt-1">Sincronizado en la nube ☁️</p>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {productos.sort((a,b) => new Date(a.fecha) - new Date(b.fecha)).map((p) => {
+                const dias = calcularDias(p.fecha);
+                const est = obtenerEstado(dias);
+                
+                return (
+                  <div key={p.id} className={`p-5 rounded-[1.5rem] border-2 flex items-center justify-between transition-all shadow-sm ${est.bg} ${est.border}`}>
+                    <div className="flex-1 pr-2">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-[10px]">{est.icono}</span>
+                        <span className={`text-[9px] font-black uppercase tracking-widest ${est.text}`}>{est.titulo}</span>
+                      </div>
+                      <h3 className={`font-black text-[16px] leading-tight ${dias < 0 ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{p.nombre}</h3>
+                      <div className="flex flex-col mt-1">
+                        <p className="text-[10px] font-bold text-gray-500 uppercase">Vence: {p.fecha.split('-').reverse().join('/')}</p>
+                        {/* MOSTRAMOS EL CÓDIGO SI EL PRODUCTO TIENE UNO */}
+                        {p.codigo && <p className="text-[9px] font-semibold text-gray-400 uppercase mt-0.5"><ScanBarcode size={10} className="inline mr-1"/>{p.codigo}</p>}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 pl-3 border-l border-black/10">
+                      <div className="text-center min-w-[3rem]">
+                        <span className={`block text-2xl font-black leading-none ${est.text}`}>{Math.abs(dias)}</span>
+                        <span className={`text-[8px] font-black uppercase tracking-widest opacity-50`}>días</span>
+                      </div>
+                      <button onClick={() => borrarItem(p.id)} className="text-gray-400 hover:text-red-500 p-1 transition-colors"><Trash2 size={20} /></button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* BOTONES FLOTANTES SOLO PARA COMIDA */}
+            <div className="fixed bottom-[80px] left-0 right-0 p-6 flex flex-col gap-3 pointer-events-none z-30">
+              <div className="pointer-events-auto">
+                <button onClick={() => setMostrarForm(true)} className="mx-auto w-12 h-12 bg-white text-gray-600 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 border border-gray-100 transition-colors"><Plus size={20} strokeWidth={3} /></button>
+              </div>
+              <div className="pointer-events-auto">
+                <button onClick={() => setMostrarScanner(true)} className="w-full bg-blue-600 text-white py-5 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(37,99,235,0.3)] flex items-center justify-center gap-3 active:scale-95 transition-all"><ScanBarcode size={24} /> Escanear Código</button>
+              </div>
+            </div>
           </div>
         )}
 
-        <div className="space-y-3">
-          {productos.sort((a,b) => new Date(a.fecha) - new Date(b.fecha)).map((p) => {
-            const dias = calcularDias(p.fecha);
-            const est = obtenerEstado(dias);
-            
-            return (
-              <div key={p.id} className={`p-5 rounded-[1.5rem] border-2 flex items-center justify-between transition-all shadow-sm ${est.bg} ${est.border}`}>
-                <div className="flex-1 pr-2">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-[10px]">{est.icono}</span>
-                    <span className={`text-[9px] font-black uppercase tracking-widest ${est.text}`}>{est.titulo}</span>
-                  </div>
-                  <h3 className={`font-black text-[16px] leading-tight ${dias < 0 ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{p.nombre}</h3>
-                  <div className="flex flex-col mt-1">
-                    <p className="text-[10px] font-bold text-gray-500 uppercase">Vence: {p.fecha.split('-').reverse().join('/')}</p>
-                    {/* MOSTRAMOS EL CÓDIGO SI EL PRODUCTO TIENE UNO */}
-                    {p.codigo && <p className="text-[9px] font-semibold text-gray-400 uppercase mt-0.5"><ScanBarcode size={10} className="inline mr-1"/>{p.codigo}</p>}
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3 pl-3 border-l border-black/10">
-                  <div className="text-center min-w-[3rem]">
-                    <span className={`block text-2xl font-black leading-none ${est.text}`}>{Math.abs(dias)}</span>
-                    <span className={`text-[8px] font-black uppercase tracking-widest opacity-50`}>días</span>
-                  </div>
-                  <button onClick={() => borrarItem(p.id)} className="text-gray-400 hover:text-red-500 p-1 transition-colors"><Trash2 size={20} /></button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {/* =========================================
+            PESTAÑA 2: MASCOTAS (EN CONSTRUCCIÓN)
+            ========================================= */}
+        {tabActivo === 'mascotas' && (
+          <div className="animate-in fade-in duration-300 py-10 text-center">
+            <PawPrint size={48} className="mx-auto mb-4 text-orange-300" />
+            <h2 className="text-xl font-black text-gray-900 mb-2">Sección Mascotas</h2>
+            <p className="text-gray-500 text-sm">Aquí irá el registro de tus mascotas, su control de peso y todo lo demás.</p>
+          </div>
+        )}
+
+        {/* =========================================
+            PESTAÑA 3: MEDICAMENTOS (EN CONSTRUCCIÓN)
+            ========================================= */}
+        {tabActivo === 'medicamentos' && (
+          <div className="animate-in fade-in duration-300 py-10 text-center">
+            <Pill size={48} className="mx-auto mb-4 text-indigo-300" />
+            <h2 className="text-xl font-black text-gray-900 mb-2">Medicamentos</h2>
+            <p className="text-gray-500 text-sm">Aquí configuraremos las alarmas para las medicinas de tus mascotas.</p>
+          </div>
+        )}
 
         {/* ÁREA DE PUBLICIDAD GOOGLE ADSENSE INTEGRADA */}
         <div className="mt-8 mb-10 flex justify-center w-full">
@@ -381,16 +420,31 @@ const Dashboard = () => {
         </div>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#F8F9FB] via-[#F8F9FB] to-transparent z-30 flex flex-col gap-3 pointer-events-none">
-        <div className="pointer-events-auto">
-          <button onClick={() => setMostrarForm(true)} className="mx-auto w-12 h-12 bg-white text-gray-600 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 border border-gray-100 transition-colors"><Plus size={20} strokeWidth={3} /></button>
-        </div>
-        <div className="pointer-events-auto">
-          <button onClick={() => setMostrarScanner(true)} className="w-full bg-blue-600 text-white py-5 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(37,99,235,0.3)] flex items-center justify-center gap-3 active:scale-95 transition-all"><ScanBarcode size={24} /> Escanear Código</button>
-        </div>
-      </div>
+      {/* =========================================
+          NUEVA BARRA DE NAVEGACIÓN INFERIOR (TABS)
+          ========================================= */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 pb-safe z-40">
+        <div className="max-w-md mx-auto flex justify-between px-6 py-3">
+          
+          <button onClick={() => setTabActivo('comida')} className={`flex flex-col items-center p-2 transition-colors ${tabActivo === 'comida' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>
+            <Leaf size={22} className={tabActivo === 'comida' ? 'fill-blue-100' : ''} />
+            <span className="text-[9px] font-bold mt-1 uppercase tracking-wider">Comida</span>
+          </button>
 
-      {/* MODAL DE INGRESO MANUAL / ESCANEO */}
+          <button onClick={() => setTabActivo('mascotas')} className={`flex flex-col items-center p-2 transition-colors ${tabActivo === 'mascotas' ? 'text-orange-600' : 'text-gray-400 hover:text-gray-600'}`}>
+            <PawPrint size={22} className={tabActivo === 'mascotas' ? 'fill-orange-100' : ''} />
+            <span className="text-[9px] font-bold mt-1 uppercase tracking-wider">Mascotas</span>
+          </button>
+
+          <button onClick={() => setTabActivo('medicamentos')} className={`flex flex-col items-center p-2 transition-colors ${tabActivo === 'medicamentos' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}>
+            <Pill size={22} className={tabActivo === 'medicamentos' ? 'fill-indigo-100' : ''} />
+            <span className="text-[9px] font-bold mt-1 uppercase tracking-wider">Medicinas</span>
+          </button>
+
+        </div>
+      </nav>
+
+      {/* MODAL DE INGRESO MANUAL / ESCANEO (SIN CAMBIOS) */}
       {mostrarForm && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMostrarForm(false)}></div>
