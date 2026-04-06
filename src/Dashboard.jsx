@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, X, ScanBarcode, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing } from 'lucide-react';
+import { Trash2, X, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing } from 'lucide-react';
 import Scanner from './Scanner';
 // IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
@@ -50,7 +50,7 @@ const Dashboard = () => {
 
       if (modoLogin === 'crear') {
         if (despensaSnap.exists()) {
-          setErrorAuth('Ese nombre de despensa ya existe. Elige otro.');
+          setErrorAuth('Ese nombre de hogar ya existe. Elige otro.');
         } else {
           await setDoc(despensaRef, { pin: inputPin, creadaEn: new Date() });
           iniciarSesion(idLimpio, inputPin);
@@ -80,7 +80,6 @@ const Dashboard = () => {
     setInputPin('');
     setTabActivo('comida');
     
-    // Pedir permiso al entrar
     pedirPermisoNotificaciones();
   };
 
@@ -93,11 +92,12 @@ const Dashboard = () => {
     setVista('landing');
   };
 
-  // LOGICA PARA LEER EL QR DE INVITACIÓN
   const procesarQRLogin = async (codigoQR) => {
     setMostrarScannerLogin(false);
-    if (codigoQR.startsWith('CV-LOGIN|')) {
+    // Soporte para QRs antiguos (CV) y nuevos (QNV)
+    if (codigoQR.startsWith('CV-LOGIN|') || codigoQR.startsWith('QNV-LOGIN|')) {
       const [, qrId, qrPin] = codigoQR.split('|');
+      
       setCargandoAuth(true);
       setErrorAuth('');
       try {
@@ -114,7 +114,7 @@ const Dashboard = () => {
         setCargandoAuth(false);
       }
     } else {
-       setErrorAuth('Ese código QR no es una invitación de Comida Vencida.');
+       setErrorAuth('Ese código QR no es una invitación de Que No Venza.');
     }
   };
 
@@ -126,12 +126,11 @@ const Dashboard = () => {
   const [compras, setCompras] = useState([]);
   
   const [mostrarForm, setMostrarForm] = useState(false);
-  const [mostrarScanner, setMostrarScanner] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
-  const [alarmasEnviadas, setAlarmasEnviadas] = useState(new Set()); // Para no spamear
+  const [alarmasEnviadas, setAlarmasEnviadas] = useState(new Set());
   
   const [nuevoItem, setNuevoItem] = useState({ 
-    tipo: 'alimento', nombre: '', codigo: '', fecha: '',
+    tipo: 'alimento', nombre: '', fecha: '',
     dosis: '', frecuencia: '8', horaInicio: '08:00', duracion: '7', esSiempre: false
   });
 
@@ -156,7 +155,6 @@ const Dashboard = () => {
     }
   }, [usuarioActual]);
 
-  // RELOJ INTERNO PARA ALARMAS PUSH
   useEffect(() => {
     if (!usuarioActual || medicamentos.length === 0) return;
 
@@ -180,33 +178,28 @@ const Dashboard = () => {
           msProximaToma = fechaInicio.getTime();
         }
 
-        // Si ya pasó la hora y no la hemos notificado en este ciclo
         if (msProximaToma > 0 && ahora >= msProximaToma) {
           const idNotificacion = `${m.id}-${msProximaToma}`;
           
           if (!alarmasEnviadas.has(idNotificacion)) {
-            // ENVIAR NOTIFICACIÓN NATIVA
             if ('Notification' in window && Notification.permission === 'granted') {
               new Notification('¡Hora de Medicación!', {
                 body: `Toca dosis de ${m.nombre} (${m.dosis || 'revisar'})`,
-                icon: 'https://cdn-icons-png.flaticon.com/512/883/883407.png', // Icono de pastilla
+                icon: 'https://cdn-icons-png.flaticon.com/512/883/883407.png',
                 vibrate: [200, 100, 200]
               });
             }
-            // Guardamos que ya avisamos para no spamear cada segundo
             setAlarmasEnviadas(prev => new Set(prev).add(idNotificacion));
           }
         }
       });
     };
 
-    // Revisar inmediatamente y luego cada 30 segundos
     revisarAlarmas();
     const intervalo = setInterval(revisarAlarmas, 30000);
     return () => clearInterval(intervalo);
   }, [usuarioActual, medicamentos, alarmasEnviadas]);
 
-  // Verifica si visualmente la tarjeta debe estar roja
   const checkAlarmaVisual = (m) => {
     if (!m.frecuencia || m.frecuencia === 'Sin Alarma') return false;
     const horasFrec = parseInt(m.frecuencia);
@@ -235,14 +228,14 @@ const Dashboard = () => {
       setEditandoId(itemToEdit.id);
       setNuevoItem({
         tipo: tipoPredefinido,
-        nombre: itemToEdit.nombre || '', codigo: itemToEdit.codigo || '', fecha: itemToEdit.fecha || '',
+        nombre: itemToEdit.nombre || '', fecha: itemToEdit.fecha || '',
         dosis: itemToEdit.dosis || '', frecuencia: itemToEdit.frecuencia || '8', horaInicio: itemToEdit.horaInicio || '08:00',
         duracion: itemToEdit.duracion || '7', esSiempre: itemToEdit.esSiempre || false
       });
     } else {
       setEditandoId(null);
       setNuevoItem({ 
-        tipo: tipoPredefinido, nombre: '', codigo: '', fecha: '', 
+        tipo: tipoPredefinido, nombre: '', fecha: '', 
         dosis: '', frecuencia: '8', horaInicio: '08:00', duracion: '7', esSiempre: false 
       });
     }
@@ -254,7 +247,7 @@ const Dashboard = () => {
     const coleccionDestino = nuevoItem.tipo === 'alimento' ? 'items' : 'medicamentos';
     
     const datos = {
-      nombre: nuevoItem.nombre, codigo: nuevoItem.codigo || '', fecha: nuevoItem.fecha || '', actualizadoEn: new Date().getTime()
+      nombre: nuevoItem.nombre, fecha: nuevoItem.fecha || '', actualizadoEn: new Date().getTime()
     };
 
     if (nuevoItem.tipo === 'medicamento') {
@@ -305,14 +298,14 @@ const Dashboard = () => {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col">
         <header className="p-6 bg-white shadow-sm flex justify-between items-center">
-          <h1 className="text-2xl font-black italic text-gray-900">comidavencida</h1>
+          <h1 className="text-2xl font-black italic text-gray-900">quenovenza</h1>
           <button onClick={() => { setVista('login'); setModoLogin('entrar'); }} className="text-blue-600 font-bold text-[11px] uppercase tracking-wider bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors">Entrar</button>
         </header>
 
         <main className="flex-1 p-6 max-w-2xl mx-auto w-full">
           <div className="text-center mt-8 mb-10">
             <div className="inline-block bg-green-100 text-green-700 font-black px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest mb-4 shadow-sm">100% Gratuita para siempre</div>
-            <h2 className="text-4xl font-black tracking-tight text-gray-900 leading-tight mb-4">Evita el desperdicio y <span className="text-blue-600">ahorra dinero</span> en tus compras.</h2>
+            <h2 className="text-4xl font-black tracking-tight text-gray-900 leading-tight mb-4">Evita el desperdicio y <span className="text-blue-600">ahorra dinero</span>.</h2>
             <p className="text-gray-600 font-medium text-lg leading-relaxed">La herramienta sin costo para organizar tu refrigerador, despensa y tu botiquín médico familiar.</p>
           </div>
 
@@ -331,10 +324,10 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <button onClick={() => { setVista('login'); setModoLogin('crear'); }} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm flex justify-center items-center gap-2 mb-10 transition-transform">Crear despensa Gratis <ArrowRight size={18} /></button>
+          <button onClick={() => { setVista('login'); setModoLogin('crear'); }} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm flex justify-center items-center gap-2 mb-10 transition-transform">Crear Hogar Gratis <ArrowRight size={18} /></button>
         </main>
         <footer className="bg-gray-100 p-6 text-center text-xs text-gray-400 font-medium mt-auto">
-          <p className="mb-4">© 2026 Comida Vencida App.</p>
+          <p className="mb-4">© 2026 Que No Venza App.</p>
         </footer>
       </div>
     );
@@ -345,17 +338,17 @@ const Dashboard = () => {
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col justify-center items-center px-6 relative">
         <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
         <div className="w-full max-w-sm mt-10">
-          <div className="text-center mb-10"><h1 className="text-4xl font-black tracking-tighter text-gray-900 italic">comidavencida</h1><p className="text-blue-600 font-bold text-xs uppercase tracking-widest mt-2">Acceso a Despensa</p></div>
+          <div className="text-center mb-10"><h1 className="text-4xl font-black tracking-tighter text-gray-900 italic">quenovenza</h1><p className="text-blue-600 font-bold text-xs uppercase tracking-widest mt-2">Acceso Seguro</p></div>
           <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl border border-gray-100">
             <div className="flex bg-gray-50 rounded-2xl p-1 mb-8">
-              <button onClick={() => { setModoLogin('crear'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'crear' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Crear Nueva</button>
+              <button onClick={() => { setModoLogin('crear'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'crear' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Crear Nuevo</button>
               <button onClick={() => { setModoLogin('entrar'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'entrar' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Ingresar</button>
             </div>
             <div className="space-y-4">
-              <div><label className="text-[10px] font-black text-gray-400 uppercase ml-2"><Home size={12} className="inline mr-1"/> Nombre de Despensa</label><input type="text" placeholder="Ej: FamiliaRojas" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold text-gray-800" value={inputId} onChange={(e) => setInputId(e.target.value.replace(/\s+/g, ''))} /></div>
+              <div><label className="text-[10px] font-black text-gray-400 uppercase ml-2"><Home size={12} className="inline mr-1"/> Nombre del Hogar</label><input type="text" placeholder="Ej: FamiliaRojas" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold text-gray-800" value={inputId} onChange={(e) => setInputId(e.target.value.replace(/\s+/g, ''))} /></div>
               <div><label className="text-[10px] font-black text-gray-400 uppercase ml-2"><Lock size={12} className="inline mr-1"/> PIN (4 números)</label><input type="password" inputMode="numeric" maxLength={4} placeholder="****" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-black text-2xl text-center tracking-[0.5em] text-gray-800" value={inputPin} onChange={(e) => setInputPin(e.target.value.replace(/\D/g, ''))} /></div>
               {errorAuth && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center">{errorAuth}</div>}
-              <button disabled={cargandoAuth} onClick={manejarAcceso} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl uppercase text-sm mt-4">{cargandoAuth ? 'Conectando...' : (modoLogin === 'crear' ? 'Abrir mi Despensa 🚀' : 'Entrar ✅')}</button>
+              <button disabled={cargandoAuth} onClick={manejarAcceso} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl uppercase text-sm mt-4">{cargandoAuth ? 'Conectando...' : (modoLogin === 'crear' ? 'Abrir Hogar 🚀' : 'Entrar ✅')}</button>
             </div>
             <div className="mt-8 pt-6 border-t border-gray-100">
               <p className="text-center text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">O entrar con invitación</p>
@@ -371,14 +364,14 @@ const Dashboard = () => {
   // ==========================================
   // RENDER PANTALLA 3: DASHBOARD PRINCIPAL
   // ==========================================
-  const qrData = `CV-LOGIN|${usuarioActual?.id || 'error'}|${usuarioActual?.pin || '0000'}`;
+  const qrData = `QNV-LOGIN|${usuarioActual?.id || 'error'}|${usuarioActual?.pin || '0000'}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrData)}`;
 
   return (
     <div className="min-h-screen bg-[#F8F9FB] font-sans pb-40 flex flex-col relative">
       <header className="px-6 pt-12 pb-4 flex justify-between items-center sticky top-0 bg-[#F8F9FB] z-20">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-gray-900 leading-none italic">comidavencida</h1>
+          <h1 className="text-2xl font-black tracking-tight text-gray-900 leading-none italic">quenovenza</h1>
           <div className="flex items-center gap-1 mt-1 opacity-60">
             <Home size={12} className="text-blue-600" />
             <p className="font-bold text-[10px] uppercase tracking-widest text-gray-800">{usuarioActual.id}</p>
@@ -511,27 +504,15 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* ÁREA DE PUBLICIDAD */}
-        <div className="mt-8 mb-10 flex justify-center w-full">
-          <div className="w-[320px] h-[50px] bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border border-gray-100">
-            <ins className="adsbygoogle" style={{ display: 'inline-block', width: '320px', height: '50px' }} data-ad-client="ca-pub-3386079946838939" data-ad-slot="TU_SLOT_AQUI"></ins>
-          </div>
-        </div>
       </main>
 
-      {/* BOTONES FLOTANTES GENERALES (Ocultos en tab compras) */}
+      {/* BOTÓN FLOTANTE GENERAL (Oculto en tab compras) */}
       {tabActivo !== 'compras' && (
         <div className="fixed bottom-[80px] left-0 right-0 p-6 flex flex-col gap-3 pointer-events-none z-30">
-          <div className="pointer-events-auto">
+          <div className="pointer-events-auto flex justify-end">
             <button onClick={() => abrirFormulario(null, tabActivo === 'comida' ? 'alimento' : 'medicamento')} 
-              className="mx-auto w-12 h-12 bg-gray-900 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-800 transition-colors">
-              <Plus size={20} strokeWidth={3} />
-            </button>
-          </div>
-          <div className="pointer-events-auto">
-            <button onClick={() => { abrirFormulario(null, tabActivo === 'comida' ? 'alimento' : 'medicamento'); setMostrarForm(false); setMostrarScanner(true); }} 
-              className="w-full bg-blue-600 text-white py-5 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(37,99,235,0.3)] flex items-center justify-center gap-3 active:scale-95 transition-all">
-              <ScanBarcode size={24} /> Escanear Código
+              className="w-14 h-14 bg-gray-900 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-800 transition-transform active:scale-95">
+              <Plus size={24} strokeWidth={3} />
             </button>
           </div>
         </div>
@@ -564,7 +545,7 @@ const Dashboard = () => {
           <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative z-10 animate-in zoom-in-95 duration-300 text-center flex flex-col items-center">
             <button onClick={() => setMostrarQRCompartir(false)} className="absolute top-4 right-4 bg-gray-100 p-2 rounded-full text-gray-500 hover:bg-gray-200"><X size={18}/></button>
             <h2 className="text-2xl font-black text-gray-900 italic mb-2">Invitar Familiar</h2>
-            <p className="text-gray-500 text-sm mb-6 leading-relaxed">Que escaneen este código desde la pantalla inicial para entrar juntos a la despensa.</p>
+            <p className="text-gray-500 text-sm mb-6 leading-relaxed">Que escaneen este código desde la pantalla inicial para entrar juntos al hogar.</p>
             <div className="bg-white p-4 rounded-3xl shadow-sm border-4 border-gray-50 mb-4 inline-block flex items-center justify-center min-h-[180px] min-w-[180px]">
               <img src={qrUrl} alt="QR Familiar" className="w-[180px] h-[180px]" />
             </div>
@@ -598,15 +579,9 @@ const Dashboard = () => {
               </div>
 
               {nuevoItem.tipo === 'alimento' ? (
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><ScanBarcode size={12} /> Código (Opc)</label>
-                    <input type="text" placeholder="Ej: 780..." className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-gray-800 transition-all" value={nuevoItem.codigo} onChange={(e) => setNuevoItem({...nuevoItem, codigo: e.target.value})} />
-                  </div>
-                  <div className="flex-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Calendar size={12} /> Vencimiento</label>
-                    <input type="date" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-gray-800 text-sm uppercase transition-all" value={nuevoItem.fecha} onChange={(e) => setNuevoItem({...nuevoItem, fecha: e.target.value})} />
-                  </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Calendar size={12} /> Vencimiento</label>
+                  <input type="date" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-gray-800 text-sm uppercase transition-all" value={nuevoItem.fecha} onChange={(e) => setNuevoItem({...nuevoItem, fecha: e.target.value})} />
                 </div>
               ) : (
                 <>
@@ -664,16 +639,6 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Escáner para Ingresar Productos */}
-      {mostrarScanner && (
-        <Scanner onScan={(codigoDetectado) => {
-            setNuevoItem({ ...nuevoItem, codigo: codigoDetectado, fecha: '' });
-            setMostrarScanner(false);
-            setMostrarForm(true);
-          }} onClose={() => setMostrarScanner(false)} 
-        />
       )}
     </div>
   );
