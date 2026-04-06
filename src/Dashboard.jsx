@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, X, ScanBarcode, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2 } from 'lucide-react';
+import { Trash2, X, ScanBarcode, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing } from 'lucide-react';
 import Scanner from './Scanner';
 // IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
@@ -26,6 +26,15 @@ const Dashboard = () => {
   // ESTADOS PARA EL QR
   const [mostrarQRCompartir, setMostrarQRCompartir] = useState(false);
   const [mostrarScannerLogin, setMostrarScannerLogin] = useState(false);
+
+  // ==========================================
+  // LÓGICA DE NOTIFICACIONES PUSH
+  // ==========================================
+  const pedirPermisoNotificaciones = () => {
+    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
+  };
 
   const manejarAcceso = async () => {
     setErrorAuth('');
@@ -70,6 +79,9 @@ const Dashboard = () => {
     setInputId('');
     setInputPin('');
     setTabActivo('comida');
+    
+    // Pedir permiso al entrar
+    pedirPermisoNotificaciones();
   };
 
   const cerrarSesion = () => {
@@ -86,7 +98,6 @@ const Dashboard = () => {
     setMostrarScannerLogin(false);
     if (codigoQR.startsWith('CV-LOGIN|')) {
       const [, qrId, qrPin] = codigoQR.split('|');
-      
       setCargandoAuth(true);
       setErrorAuth('');
       try {
@@ -108,7 +119,7 @@ const Dashboard = () => {
   };
 
   // ==========================================
-  // 2. LÓGICA DE DATOS (FIREBASE)
+  // 2. LÓGICA DE DATOS Y ALARMAS (FIREBASE)
   // ==========================================
   const [productos, setProductos] = useState([]);
   const [medicamentos, setMedicamentos] = useState([]);
@@ -117,17 +128,11 @@ const Dashboard = () => {
   const [mostrarForm, setMostrarForm] = useState(false);
   const [mostrarScanner, setMostrarScanner] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
+  const [alarmasEnviadas, setAlarmasEnviadas] = useState(new Set()); // Para no spamear
   
   const [nuevoItem, setNuevoItem] = useState({ 
-    tipo: 'alimento',
-    nombre: '', 
-    codigo: '', 
-    fecha: '',
-    dosis: '',
-    frecuencia: '8', // Horas
-    horaInicio: '08:00',
-    duracion: '7', // Días
-    esSiempre: false
+    tipo: 'alimento', nombre: '', codigo: '', fecha: '',
+    dosis: '', frecuencia: '8', horaInicio: '08:00', duracion: '7', esSiempre: false
   });
 
   useEffect(() => {
@@ -151,19 +156,88 @@ const Dashboard = () => {
     }
   }, [usuarioActual]);
 
+  // RELOJ INTERNO PARA ALARMAS PUSH
+  useEffect(() => {
+    if (!usuarioActual || medicamentos.length === 0) return;
+
+    const revisarAlarmas = () => {
+      const ahora = new Date().getTime();
+
+      medicamentos.forEach(m => {
+        if (!m.frecuencia || m.frecuencia === 'Sin Alarma') return;
+        
+        const horasFrec = parseInt(m.frecuencia);
+        if (isNaN(horasFrec)) return;
+
+        let msProximaToma = 0;
+
+        if (m.ultimaToma) {
+          msProximaToma = m.ultimaToma + (horasFrec * 60 * 60 * 1000);
+        } else if (m.horaInicio) {
+          const [horas, mins] = m.horaInicio.split(':');
+          const fechaInicio = new Date();
+          fechaInicio.setHours(parseInt(horas), parseInt(mins), 0, 0);
+          msProximaToma = fechaInicio.getTime();
+        }
+
+        // Si ya pasó la hora y no la hemos notificado en este ciclo
+        if (msProximaToma > 0 && ahora >= msProximaToma) {
+          const idNotificacion = `${m.id}-${msProximaToma}`;
+          
+          if (!alarmasEnviadas.has(idNotificacion)) {
+            // ENVIAR NOTIFICACIÓN NATIVA
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('¡Hora de Medicación!', {
+                body: `Toca dosis de ${m.nombre} (${m.dosis || 'revisar'})`,
+                icon: 'https://cdn-icons-png.flaticon.com/512/883/883407.png', // Icono de pastilla
+                vibrate: [200, 100, 200]
+              });
+            }
+            // Guardamos que ya avisamos para no spamear cada segundo
+            setAlarmasEnviadas(prev => new Set(prev).add(idNotificacion));
+          }
+        }
+      });
+    };
+
+    // Revisar inmediatamente y luego cada 30 segundos
+    revisarAlarmas();
+    const intervalo = setInterval(revisarAlarmas, 30000);
+    return () => clearInterval(intervalo);
+  }, [usuarioActual, medicamentos, alarmasEnviadas]);
+
+  // Verifica si visualmente la tarjeta debe estar roja
+  const checkAlarmaVisual = (m) => {
+    if (!m.frecuencia || m.frecuencia === 'Sin Alarma') return false;
+    const horasFrec = parseInt(m.frecuencia);
+    if (isNaN(horasFrec)) return false;
+
+    let msProximaToma = 0;
+    if (m.ultimaToma) {
+      msProximaToma = m.ultimaToma + (horasFrec * 60 * 60 * 1000);
+    } else if (m.horaInicio) {
+      const [horas, mins] = m.horaInicio.split(':');
+      const d = new Date();
+      d.setHours(parseInt(horas), parseInt(mins), 0, 0);
+      msProximaToma = d.getTime();
+    }
+    return msProximaToma > 0 && new Date().getTime() >= msProximaToma;
+  };
+
+  const registrarToma = async (idMedicamento) => {
+    const docRef = doc(db, 'despensas', usuarioActual.id, 'medicamentos', idMedicamento);
+    await updateDoc(docRef, { ultimaToma: new Date().getTime() });
+  };
+
+
   const abrirFormulario = (itemToEdit = null, tipoPredefinido = 'alimento') => {
     if (itemToEdit) {
       setEditandoId(itemToEdit.id);
       setNuevoItem({
         tipo: tipoPredefinido,
-        nombre: itemToEdit.nombre || '',
-        codigo: itemToEdit.codigo || '',
-        fecha: itemToEdit.fecha || '',
-        dosis: itemToEdit.dosis || '',
-        frecuencia: itemToEdit.frecuencia || '8',
-        horaInicio: itemToEdit.horaInicio || '08:00',
-        duracion: itemToEdit.duracion || '7',
-        esSiempre: itemToEdit.esSiempre || false
+        nombre: itemToEdit.nombre || '', codigo: itemToEdit.codigo || '', fecha: itemToEdit.fecha || '',
+        dosis: itemToEdit.dosis || '', frecuencia: itemToEdit.frecuencia || '8', horaInicio: itemToEdit.horaInicio || '08:00',
+        duracion: itemToEdit.duracion || '7', esSiempre: itemToEdit.esSiempre || false
       });
     } else {
       setEditandoId(null);
@@ -180,10 +254,7 @@ const Dashboard = () => {
     const coleccionDestino = nuevoItem.tipo === 'alimento' ? 'items' : 'medicamentos';
     
     const datos = {
-      nombre: nuevoItem.nombre,
-      codigo: nuevoItem.codigo || '',
-      fecha: nuevoItem.fecha || '',
-      actualizadoEn: new Date().getTime()
+      nombre: nuevoItem.nombre, codigo: nuevoItem.codigo || '', fecha: nuevoItem.fecha || '', actualizadoEn: new Date().getTime()
     };
 
     if (nuevoItem.tipo === 'medicamento') {
@@ -195,39 +266,26 @@ const Dashboard = () => {
     }
     
     if (editandoId) {
-      const docRef = doc(db, 'despensas', usuarioActual.id, coleccionDestino, editandoId);
-      await updateDoc(docRef, datos);
+      await updateDoc(doc(db, 'despensas', usuarioActual.id, coleccionDestino, editandoId), datos);
     } else {
       datos.creadoEn = new Date().getTime();
       await addDoc(collection(db, 'despensas', usuarioActual.id, coleccionDestino), datos);
     }
     
-    setMostrarForm(false);
-    setEditandoId(null);
+    setMostrarForm(false); setEditandoId(null);
   };
 
-  const borrarItem = async (itemId, coleccion) => {
-    const docRef = doc(db, 'despensas', usuarioActual.id, coleccion, itemId);
-    await deleteDoc(docRef);
-  };
+  const borrarItem = async (itemId, coleccion) => { await deleteDoc(doc(db, 'despensas', usuarioActual.id, coleccion, itemId)); };
 
   const agregarACompras = async (nombreProducto) => {
-    await addDoc(collection(db, 'despensas', usuarioActual.id, 'compras'), {
-      nombre: nombreProducto,
-      comprado: false,
-      creadoEn: new Date().getTime()
-    });
+    await addDoc(collection(db, 'despensas', usuarioActual.id, 'compras'), { nombre: nombreProducto, comprado: false, creadoEn: new Date().getTime() });
   };
 
   const toggleCompra = async (item) => {
-    const docRef = doc(db, 'despensas', usuarioActual.id, 'compras', item.id);
-    await updateDoc(docRef, { comprado: !item.comprado });
+    await updateDoc(doc(db, 'despensas', usuarioActual.id, 'compras', item.id), { comprado: !item.comprado });
   };
 
-  const calcularDias = (f) => {
-    if (!f) return 999;
-    return Math.ceil((new Date(f) - new Date()) / (1000 * 60 * 60 * 24));
-  };
+  const calcularDias = (f) => { if (!f) return 999; return Math.ceil((new Date(f) - new Date()) / (1000 * 60 * 60 * 24)); };
 
   const obtenerEstado = (dias) => {
     if (dias < 0) return { titulo: 'VENCIDO', bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-500', icono: '💀' };
@@ -237,201 +295,75 @@ const Dashboard = () => {
   };
 
   // ==========================================
-  // RENDER PANTALLAS LEGALES Y DE CONTACTO
+  // RENDER PANTALLAS LEGALES Y LANDING
   // ==========================================
-  
-  if (!usuarioActual && vista === 'privacidad') {
-    return (
-      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12">
-        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
-        <div className="max-w-2xl mx-auto bg-white p-8 rounded-[2rem] shadow-xl mt-8">
-          <h1 className="text-2xl font-black mb-6 text-gray-900">Política de Privacidad</h1>
-          <div className="text-gray-600 space-y-4 text-sm leading-relaxed">
-            <p><strong>Última actualización: Abril 2026</strong></p>
-            <p>En Comida Vencida App, nos tomamos muy en serio tu privacidad. Esta política explica cómo recopilamos, usamos y protegemos tu información.</p>
-            <h3 className="font-bold text-gray-900">1. Información que recopilamos</h3>
-            <p>No recopilamos información personal identificable como nombres reales, correos electrónicos o números de teléfono. Solo almacenamos el "Nombre de Despensa" y el "PIN" que tú mismo creas para acceder a tu cuenta, además de los datos de los alimentos que ingresas.</p>
-            <h3 className="font-bold text-gray-900">2. Publicidad (Google AdSense)</h3>
-            <p>Utilizamos Google AdSense para mostrar anuncios. Google utiliza cookies para publicar anuncios basados en tus visitas anteriores a nuestra aplicación u otros sitios web de Internet. Puedes inhabilitar la publicidad personalizada visitando la Configuración de anuncios de Google.</p>
-            <h3 className="font-bold text-gray-900">3. Almacenamiento de Datos</h3>
-            <p>Tus datos de inventario se almacenan de forma segura utilizando los servicios en la nube de Google (Firebase). No vendemos ni compartimos tus datos de inventario con terceros.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (!usuarioActual && vista === 'privacidad') return <div className="p-6 text-gray-500">Política de Privacidad... <button onClick={()=>setVista('landing')}>Volver</button></div>;
+  if (!usuarioActual && vista === 'terminos') return <div className="p-6 text-gray-500">Términos... <button onClick={()=>setVista('landing')}>Volver</button></div>;
+  if (!usuarioActual && vista === 'contacto') return <div className="p-6 text-gray-500">Contacto... <button onClick={()=>setVista('landing')}>Volver</button></div>;
 
-  if (!usuarioActual && vista === 'terminos') {
-    return (
-      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12">
-        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
-        <div className="max-w-2xl mx-auto bg-white p-8 rounded-[2rem] shadow-xl mt-8">
-          <h1 className="text-2xl font-black mb-6 text-gray-900">Términos y Condiciones</h1>
-          <div className="text-gray-600 space-y-4 text-sm leading-relaxed">
-            <h3 className="font-bold text-gray-900">1. Servicio 100% Gratuito</h3>
-            <p>Comida Vencida App se ofrece de manera completamente gratuita para todos los usuarios. No existen cargos ocultos, versiones premium ni suscripciones. La plataforma se mantiene operativa gracias a la publicidad mostrada en pantalla.</p>
-            <h3 className="font-bold text-gray-900">2. Aceptación de los Términos</h3>
-            <p>Al acceder y utilizar Comida Vencida App, aceptas estar sujeto a estos Términos y Condiciones. Si no estás de acuerdo, por favor no utilices la aplicación.</p>
-            <h3 className="font-bold text-gray-900">3. Uso de la Aplicación</h3>
-            <p>Comida Vencida es una herramienta de organización personal. Eres responsable de mantener la confidencialidad de tu ID de Despensa y PIN.</p>
-            <h3 className="font-bold text-gray-900">4. Limitación de Responsabilidad</h3>
-            <p>Esta aplicación proporciona cálculos estimativos de fechas de vencimiento. No nos hacemos responsables por alimentos consumidos en mal estado, intoxicaciones, pérdidas económicas o cualquier problema derivado de la información ingresada por el usuario. La revisión del estado real del alimento es responsabilidad exclusiva del usuario.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!usuarioActual && vista === 'contacto') {
-    return (
-      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12">
-        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
-        <div className="max-w-md mx-auto w-full mt-10">
-          <div className="bg-white p-8 rounded-[2rem] shadow-xl text-center border border-gray-100">
-            <h1 className="text-3xl font-black mb-4 text-gray-900 italic">Contacto</h1>
-            <p className="text-gray-500 text-sm mb-8 leading-relaxed">¿Tienes dudas, sugerencias o encontraste algún error en la aplicación? ¡Nos encantaría escucharte!</p>
-            <a href="mailto:hola@comidavencida.cl" className="inline-block w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm transition-transform">
-              Enviar un correo
-            </a>
-            <p className="mt-6 text-xs text-gray-400">Responderemos lo antes posible.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ==========================================
-  // RENDER PANTALLA 1: PORTADA SEO (LANDING PAGE)
-  // ==========================================
   if (!usuarioActual && vista === 'landing') {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col">
-        {/* Cabecera Publica */}
         <header className="p-6 bg-white shadow-sm flex justify-between items-center">
           <h1 className="text-2xl font-black italic text-gray-900">comidavencida</h1>
-          <button 
-            onClick={() => { setVista('login'); setModoLogin('entrar'); }} 
-            className="text-blue-600 font-bold text-[11px] uppercase tracking-wider bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors"
-          >
-            Entrar
-          </button>
+          <button onClick={() => { setVista('login'); setModoLogin('entrar'); }} className="text-blue-600 font-bold text-[11px] uppercase tracking-wider bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors">Entrar</button>
         </header>
 
-        {/* Contenido SEO para el robot de Google */}
         <main className="flex-1 p-6 max-w-2xl mx-auto w-full">
           <div className="text-center mt-8 mb-10">
-            <div className="inline-block bg-green-100 text-green-700 font-black px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest mb-4 shadow-sm">
-              100% Gratuita para siempre
-            </div>
-            <h2 className="text-4xl font-black tracking-tight text-gray-900 leading-tight mb-4">
-              Evita el desperdicio y <span className="text-blue-600">ahorra dinero</span> en tus compras.
-            </h2>
-            <p className="text-gray-600 font-medium text-lg leading-relaxed">
-              La herramienta sin costo para organizar tu refrigerador y despensa. Recibe alertas visuales antes de que tus alimentos expiren.
-            </p>
+            <div className="inline-block bg-green-100 text-green-700 font-black px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest mb-4 shadow-sm">100% Gratuita para siempre</div>
+            <h2 className="text-4xl font-black tracking-tight text-gray-900 leading-tight mb-4">Evita el desperdicio y <span className="text-blue-600">ahorra dinero</span> en tus compras.</h2>
+            <p className="text-gray-600 font-medium text-lg leading-relaxed">La herramienta sin costo para organizar tu refrigerador, despensa y tu botiquín médico familiar.</p>
           </div>
 
-          {/* Tarjetas de valor (Texto para AdSense) */}
           <div className="space-y-4 mb-10">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
               <div className="bg-green-100 text-green-600 p-3 rounded-full h-fit"><DollarSign size={24} /></div>
-              <div>
-                <h3 className="font-black text-gray-900 mb-1">Ahorro Inteligente</h3>
-                <p className="text-gray-500 text-sm">Organizar tu despensa evita comprar productos duplicados y reduce drásticamente el dinero que gastas en alimentos que terminan en la basura. Ideal para las familias en Chile.</p>
-              </div>
+              <div><h3 className="font-black text-gray-900 mb-1">Ahorro Inteligente</h3><p className="text-gray-500 text-sm">Organizar tu despensa evita comprar productos duplicados.</p></div>
             </div>
-            
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
               <div className="bg-blue-100 text-blue-600 p-3 rounded-full h-fit"><Leaf size={24} /></div>
-              <div>
-                <h3 className="font-black text-gray-900 mb-1">Impacto Ambiental</h3>
-                <p className="text-gray-500 text-sm">El desperdicio de comida es uno de los mayores problemas ecológicos. Al controlar las fechas de caducidad, contribuyes a un planeta más limpio y sostenible.</p>
-              </div>
+              <div><h3 className="font-black text-gray-900 mb-1">Impacto Ambiental</h3><p className="text-gray-500 text-sm">El desperdicio de comida es un problema ecológico grave.</p></div>
             </div>
-
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
-              <div className="bg-orange-100 text-orange-600 p-3 rounded-full h-fit"><ShieldCheck size={24} /></div>
-              <div>
-                <h3 className="font-black text-gray-900 mb-1">Privacidad Total</h3>
-                <p className="text-gray-500 text-sm">No necesitas correo ni número de teléfono. Crea una sala privada con un PIN seguro y compártela solo con tu familia para actualizar las compras en tiempo real.</p>
-              </div>
+              <div className="bg-indigo-100 text-indigo-600 p-3 rounded-full h-fit"><BellRing size={24} /></div>
+              <div><h3 className="font-black text-gray-900 mb-1">Botiquín y Notificaciones</h3><p className="text-gray-500 text-sm">Registra medicinas y recibe alarmas cuando te toque la dosis.</p></div>
             </div>
           </div>
 
-          <button 
-            onClick={() => { setVista('login'); setModoLogin('crear'); }} 
-            className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm flex justify-center items-center gap-2 mb-10 transition-transform"
-          >
-            Crear despensa Gratis <ArrowRight size={18} />
-          </button>
+          <button onClick={() => { setVista('login'); setModoLogin('crear'); }} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm flex justify-center items-center gap-2 mb-10 transition-transform">Crear despensa Gratis <ArrowRight size={18} /></button>
         </main>
-
-        {/* Footer legal interactivo (Requisito AdSense) */}
         <footer className="bg-gray-100 p-6 text-center text-xs text-gray-400 font-medium mt-auto">
-          <p className="mb-4">© 2026 Comida Vencida App. Todos los derechos reservados.</p>
-          <div className="flex justify-center gap-4 flex-wrap">
-            <button onClick={() => setVista('privacidad')} className="hover:text-gray-600 hover:underline transition-colors">Política de Privacidad</button>
-            <button onClick={() => setVista('terminos')} className="hover:text-gray-600 hover:underline transition-colors">Términos del Servicio</button>
-            <button onClick={() => setVista('contacto')} className="hover:text-gray-600 hover:underline transition-colors">Contacto</button>
-          </div>
+          <p className="mb-4">© 2026 Comida Vencida App.</p>
         </footer>
       </div>
     );
   }
 
-  // ==========================================
-  // RENDER PANTALLA 2: LOGIN CON QR
-  // ==========================================
   if (!usuarioActual && vista === 'login') {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col justify-center items-center px-6 relative">
-        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">
-          ← Volver
-        </button>
-
+        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
         <div className="w-full max-w-sm mt-10">
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-black tracking-tighter text-gray-900 italic">comidavencida</h1>
-            <p className="text-blue-600 font-bold text-xs uppercase tracking-widest mt-2">Acceso a Despensa</p>
-          </div>
-
+          <div className="text-center mb-10"><h1 className="text-4xl font-black tracking-tighter text-gray-900 italic">comidavencida</h1><p className="text-blue-600 font-bold text-xs uppercase tracking-widest mt-2">Acceso a Despensa</p></div>
           <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl border border-gray-100">
             <div className="flex bg-gray-50 rounded-2xl p-1 mb-8">
-              <button onClick={() => { setModoLogin('crear'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'crear' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>Crear Nueva</button>
-              <button onClick={() => { setModoLogin('entrar'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'entrar' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>Ingresar</button>
+              <button onClick={() => { setModoLogin('crear'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'crear' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Crear Nueva</button>
+              <button onClick={() => { setModoLogin('entrar'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'entrar' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Ingresar</button>
             </div>
-
             <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Home size={12} /> Nombre de Despensa</label>
-                <input type="text" placeholder="Ej: FamiliaRojas" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-gray-800 transition-all" value={inputId} onChange={(e) => setInputId(e.target.value.replace(/\s+/g, ''))} />
-              </div>
-              <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Lock size={12} /> PIN (4 números)</label>
-                <input type="password" inputMode="numeric" maxLength={4} placeholder="****" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-black text-2xl text-center tracking-[0.5em] text-gray-800 transition-all" value={inputPin} onChange={(e) => setInputPin(e.target.value.replace(/\D/g, ''))} />
-              </div>
-              {errorAuth && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center border border-red-100 animate-in fade-in">{errorAuth}</div>}
-              
-              <button disabled={cargandoAuth} onClick={manejarAcceso} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm mt-4 disabled:opacity-50 transition-transform">
-                {cargandoAuth ? 'Conectando...' : (modoLogin === 'crear' ? 'Abrir mi Despensa 🚀' : 'Entrar ✅')}
-              </button>
+              <div><label className="text-[10px] font-black text-gray-400 uppercase ml-2"><Home size={12} className="inline mr-1"/> Nombre de Despensa</label><input type="text" placeholder="Ej: FamiliaRojas" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold text-gray-800" value={inputId} onChange={(e) => setInputId(e.target.value.replace(/\s+/g, ''))} /></div>
+              <div><label className="text-[10px] font-black text-gray-400 uppercase ml-2"><Lock size={12} className="inline mr-1"/> PIN (4 números)</label><input type="password" inputMode="numeric" maxLength={4} placeholder="****" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-black text-2xl text-center tracking-[0.5em] text-gray-800" value={inputPin} onChange={(e) => setInputPin(e.target.value.replace(/\D/g, ''))} /></div>
+              {errorAuth && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center">{errorAuth}</div>}
+              <button disabled={cargandoAuth} onClick={manejarAcceso} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl uppercase text-sm mt-4">{cargandoAuth ? 'Conectando...' : (modoLogin === 'crear' ? 'Abrir mi Despensa 🚀' : 'Entrar ✅')}</button>
             </div>
-
-            {/* SECCIÓN DEL ESCÁNER PARA INVITADOS (QR) */}
             <div className="mt-8 pt-6 border-t border-gray-100">
               <p className="text-center text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">O entrar con invitación</p>
-              <button onClick={() => setMostrarScannerLogin(true)} className="w-full bg-white border-2 border-dashed border-gray-300 text-gray-600 font-black p-4 rounded-2xl flex justify-center items-center gap-2 hover:bg-gray-50 active:scale-95 transition-all">
-                <QrCode size={20} /> Escanear QR Familiar
-              </button>
+              <button onClick={() => setMostrarScannerLogin(true)} className="w-full bg-white border-2 border-dashed border-gray-300 text-gray-600 font-black p-4 rounded-2xl flex justify-center items-center gap-2 hover:bg-gray-50"><QrCode size={20} /> Escanear QR</button>
             </div>
-
           </div>
         </div>
-
-        {/* Modal de Escáner en el Login */}
-        {mostrarScannerLogin && (
-          <Scanner onScan={procesarQRLogin} onClose={() => setMostrarScannerLogin(false)} />
-        )}
+        {mostrarScannerLogin && <Scanner onScan={procesarQRLogin} onClose={() => setMostrarScannerLogin(false)} />}
       </div>
     );
   }
@@ -453,11 +385,8 @@ const Dashboard = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* BOTÓN PARA COMPARTIR QR */}
-          <button onClick={() => setMostrarQRCompartir(true)} className="bg-white border border-gray-200 p-2.5 rounded-full text-blue-600 hover:bg-blue-50 transition-all shadow-sm active:scale-95">
-            <Share2 size={18} />
-          </button>
-          <button onClick={cerrarSesion} className="bg-white border border-gray-200 p-2.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all shadow-sm active:scale-95"><LogOut size={18} /></button>
+          <button onClick={() => setMostrarQRCompartir(true)} className="bg-white border border-gray-200 p-2.5 rounded-full text-blue-600 hover:bg-blue-50 shadow-sm"><Share2 size={18} /></button>
+          <button onClick={cerrarSesion} className="bg-white border border-gray-200 p-2.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm"><LogOut size={18} /></button>
         </div>
       </header>
 
@@ -474,20 +403,13 @@ const Dashboard = () => {
             )}
             <div className="space-y-3">
               {productos.sort((a,b) => new Date(a.fecha) - new Date(b.fecha)).map((p) => {
-                const dias = calcularDias(p.fecha);
-                const est = obtenerEstado(dias);
+                const dias = calcularDias(p.fecha); const est = obtenerEstado(dias);
                 return (
                   <div key={p.id} className={`p-5 rounded-[1.5rem] border-2 flex items-center justify-between shadow-sm ${est.bg} ${est.border}`}>
                     <div className="flex-1 pr-2">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <span className="text-[10px]">{est.icono}</span>
-                        <span className={`text-[9px] font-black uppercase tracking-widest ${est.text}`}>{est.titulo}</span>
-                      </div>
+                      <div className="flex items-center gap-1.5 mb-1"><span className="text-[10px]">{est.icono}</span><span className={`text-[9px] font-black uppercase tracking-widest ${est.text}`}>{est.titulo}</span></div>
                       <h3 className={`font-black text-[16px] leading-tight ${dias < 0 ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{p.nombre}</h3>
-                      <div className="flex flex-col mt-1">
-                        <p className="text-[10px] font-bold text-gray-500 uppercase">Vence: {p.fecha.split('-').reverse().join('/')}</p>
-                        {p.codigo && <p className="text-[9px] font-semibold text-gray-400 uppercase mt-0.5"><ScanBarcode size={10} className="inline mr-1"/>{p.codigo}</p>}
-                      </div>
+                      <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">Vence: {p.fecha.split('-').reverse().join('/')}</p>
                     </div>
                     <div className="flex items-center gap-1 pl-3 border-l border-black/10">
                       <div className="text-center min-w-[3rem] mr-1">
@@ -521,15 +443,13 @@ const Dashboard = () => {
               {medicamentos.sort((a,b) => new Date(a.fecha || '2099-01-01') - new Date(b.fecha || '2099-01-01')).map((m) => {
                 const dias = m.fecha ? calcularDias(m.fecha) : 999;
                 const est = m.fecha ? obtenerEstado(dias) : { bg: 'bg-white', border: 'border-gray-200', text: 'text-gray-700', titulo: 'ACTIVO', icono: '💊' };
+                const alarmaSonando = checkAlarmaVisual(m);
                 
                 return (
-                  <div key={m.id} className={`p-5 rounded-[1.5rem] border-2 flex flex-col justify-between shadow-sm ${est.bg} ${est.border}`}>
+                  <div key={m.id} className={`p-5 rounded-[1.5rem] border-2 flex flex-col justify-between shadow-sm transition-colors ${alarmaSonando ? 'bg-red-100 border-red-300' : est.bg + ' ' + est.border}`}>
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className="text-[10px]">{est.icono}</span>
-                          <span className={`text-[9px] font-black uppercase tracking-widest ${est.text}`}>{est.titulo}</span>
-                        </div>
+                        <div className="flex items-center gap-1.5 mb-1"><span className="text-[10px]">{est.icono}</span><span className={`text-[9px] font-black uppercase tracking-widest ${est.text}`}>{est.titulo}</span></div>
                         <h3 className={`font-black text-[16px] leading-tight ${dias < 0 ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{m.nombre}</h3>
                         {m.fecha && <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">Vence: {m.fecha.split('-').reverse().join('/')}</p>}
                       </div>
@@ -538,17 +458,23 @@ const Dashboard = () => {
                         <button onClick={() => borrarItem(m.id, 'medicamentos')} className="text-gray-400 hover:text-red-500 p-1.5 bg-white rounded-full shadow-sm"><Trash2 size={14} /></button>
                       </div>
                     </div>
-                    {m.dosis && (
-                      <div className="bg-white/60 p-3 rounded-xl border border-white flex items-center gap-3">
-                        <Clock size={16} className="text-indigo-500" />
-                        <div>
-                          <p className="text-[11px] font-black text-gray-800 leading-tight">Dosis: {m.dosis}</p>
-                          <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
-                            Cada {m.frecuencia}h • Inicio: {m.horaInicio} 
-                            <br/>
-                            <span className="text-indigo-400">{m.esSiempre ? 'Continuo' : `Por ${m.duracion} días`}</span>
-                          </p>
+                    
+                    {m.frecuencia !== 'Sin Alarma' && (
+                      <div className={`p-3 rounded-xl border flex items-center justify-between ${alarmaSonando ? 'bg-red-500 border-red-600 shadow-md' : 'bg-white/60 border-white'}`}>
+                        <div className="flex items-center gap-3">
+                          <Clock size={16} className={alarmaSonando ? 'text-white' : 'text-indigo-500'} />
+                          <div>
+                            <p className={`text-[11px] font-black leading-tight ${alarmaSonando ? 'text-white' : 'text-gray-800'}`}>Dosis: {m.dosis}</p>
+                            <p className={`text-[9px] font-bold uppercase tracking-widest ${alarmaSonando ? 'text-red-100' : 'text-gray-500'}`}>
+                              Cada {m.frecuencia}h • <span className={alarmaSonando ? 'text-white' : 'text-indigo-400'}>{m.esSiempre ? 'Continuo' : `${m.duracion} días`}</span>
+                            </p>
+                          </div>
                         </div>
+                        {alarmaSonando && (
+                          <button onClick={() => registrarToma(m.id)} className="bg-white text-red-600 font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded-lg active:scale-95 flex items-center gap-1 shadow-sm">
+                            <CheckCircle2 size={14}/> Tomar
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -562,30 +488,20 @@ const Dashboard = () => {
         {tabActivo === 'compras' && (
           <div className="animate-in fade-in duration-300">
             <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1 flex items-center gap-1"><ShoppingCart size={14}/> Lista de Compras</h2>
-            
             <div className="flex gap-2 mb-4">
               <input type="text" placeholder="Añadir a la lista (Presiona Enter)..." className="flex-1 p-4 bg-white shadow-sm border border-gray-100 rounded-2xl outline-none font-bold text-gray-800 text-sm" 
-                     onKeyDown={(e) => {
-                       if (e.key === 'Enter' && e.target.value.trim()) {
-                         agregarACompras(e.target.value.trim());
-                         e.target.value = '';
-                       }
-                     }} />
+                     onKeyDown={(e) => { if (e.key === 'Enter' && e.target.value.trim()) { agregarACompras(e.target.value.trim()); e.target.value = ''; } }} />
             </div>
-
             {compras.length === 0 && (
               <div className="py-16 text-center opacity-60 border-2 border-dashed border-gray-200 rounded-[2rem]">
                 <p className="text-gray-500 font-bold text-lg">Lista vacía</p>
-                <p className="text-gray-400 text-sm mt-1">Añade productos cuando se acaben.</p>
               </div>
             )}
             <div className="space-y-2">
               {compras.sort((a,b) => a.comprado - b.comprado).map((c) => (
                 <div key={c.id} className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${c.comprado ? 'bg-gray-50 border-gray-200 opacity-60' : 'bg-white border-gray-200 shadow-sm'}`}>
                   <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => toggleCompra(c)}>
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${c.comprado ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>
-                      {c.comprado && <CheckCircle2 size={14} className="text-white"/>}
-                    </div>
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${c.comprado ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>{c.comprado && <CheckCircle2 size={14} className="text-white"/>}</div>
                     <span className={`font-black text-sm ${c.comprado ? 'line-through text-gray-400' : 'text-gray-800'}`}>{c.nombre}</span>
                   </div>
                   <button onClick={() => borrarItem(c.id, 'compras')} className="text-gray-400 hover:text-red-500 p-2"><Trash2 size={16} /></button>
@@ -595,7 +511,7 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* ÁREA DE PUBLICIDAD GOOGLE ADSENSE INTEGRADA */}
+        {/* ÁREA DE PUBLICIDAD */}
         <div className="mt-8 mb-10 flex justify-center w-full">
           <div className="w-[320px] h-[50px] bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border border-gray-100">
             <ins className="adsbygoogle" style={{ display: 'inline-block', width: '320px', height: '50px' }} data-ad-client="ca-pub-3386079946838939" data-ad-slot="TU_SLOT_AQUI"></ins>
@@ -613,11 +529,7 @@ const Dashboard = () => {
             </button>
           </div>
           <div className="pointer-events-auto">
-            <button onClick={() => {
-                abrirFormulario(null, tabActivo === 'comida' ? 'alimento' : 'medicamento');
-                setMostrarForm(false);
-                setMostrarScanner(true);
-              }} 
+            <button onClick={() => { abrirFormulario(null, tabActivo === 'comida' ? 'alimento' : 'medicamento'); setMostrarForm(false); setMostrarScanner(true); }} 
               className="w-full bg-blue-600 text-white py-5 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(37,99,235,0.3)] flex items-center justify-center gap-3 active:scale-95 transition-all">
               <ScanBarcode size={24} /> Escanear Código
             </button>
@@ -645,9 +557,7 @@ const Dashboard = () => {
         </div>
       </nav>
 
-      {/* =========================================
-          MODAL: COMPARTIR CÓDIGO QR (SOLUCIÓN SEGURA)
-          ========================================= */}
+      {/* MODAL QR DE INVITACIÓN */}
       {mostrarQRCompartir && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMostrarQRCompartir(false)}></div>
@@ -655,18 +565,16 @@ const Dashboard = () => {
             <button onClick={() => setMostrarQRCompartir(false)} className="absolute top-4 right-4 bg-gray-100 p-2 rounded-full text-gray-500 hover:bg-gray-200"><X size={18}/></button>
             <h2 className="text-2xl font-black text-gray-900 italic mb-2">Invitar Familiar</h2>
             <p className="text-gray-500 text-sm mb-6 leading-relaxed">Que escaneen este código desde la pantalla inicial para entrar juntos a la despensa.</p>
-            
             <div className="bg-white p-4 rounded-3xl shadow-sm border-4 border-gray-50 mb-4 inline-block flex items-center justify-center min-h-[180px] min-w-[180px]">
               <img src={qrUrl} alt="QR Familiar" className="w-[180px] h-[180px]" />
             </div>
-            
             <p className="text-blue-600 font-black text-xl uppercase tracking-widest mt-2">{usuarioActual.id}</p>
             <p className="text-gray-400 font-black tracking-[0.5em] text-xs mt-1">PIN: {usuarioActual.pin || '****'}</p>
           </div>
         </div>
       )}
 
-      {/* FORMULARIO DINÁMICO (CREAR O EDITAR) */}
+      {/* FORMULARIO DINÁMICO */}
       {mostrarForm && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMostrarForm(false)}></div>
@@ -676,7 +584,6 @@ const Dashboard = () => {
               <button onClick={() => setMostrarForm(false)} className="bg-gray-100 p-2 rounded-full hover:bg-gray-200 transition-colors"><X size={18}/></button>
             </div>
             
-            {/* SELECTOR DE CATEGORÍA (Solo si es nuevo) */}
             {!editandoId && (
               <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
                 <button onClick={() => setNuevoItem({...nuevoItem, tipo: 'alimento'})} className={`flex-1 py-2 text-[11px] uppercase tracking-widest font-black rounded-lg transition-all ${nuevoItem.tipo === 'alimento' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Comida</button>
@@ -705,7 +612,7 @@ const Dashboard = () => {
                 <>
                   <div className="flex gap-4">
                     <div className="flex-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Calendar size={12} /> Vencimiento (Opc)</label>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Calendar size={12} /> Vence (Opc)</label>
                       <input type="date" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-indigo-200 rounded-2xl outline-none font-bold text-gray-800 text-sm uppercase transition-all" value={nuevoItem.fecha} onChange={(e) => setNuevoItem({...nuevoItem, fecha: e.target.value})} />
                     </div>
                     <div className="flex-1">
@@ -723,21 +630,28 @@ const Dashboard = () => {
                     <div className="flex gap-4">
                       <div className="flex-1">
                         <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-2 mb-1 block">Cada (Hrs)</label>
-                        <input type="number" placeholder="Ej: 8" className="w-full p-3 bg-white border-2 border-transparent focus:border-indigo-200 rounded-xl outline-none font-bold text-gray-800 text-sm" value={nuevoItem.frecuencia} onChange={(e) => setNuevoItem({...nuevoItem, frecuencia: e.target.value})} />
+                        <select className="w-full p-3 bg-white border-2 border-transparent focus:border-indigo-200 rounded-xl outline-none font-bold text-gray-800 text-sm" value={nuevoItem.frecuencia} onChange={(e) => setNuevoItem({...nuevoItem, frecuencia: e.target.value})}>
+                          <option value="Sin Alarma">Sin Alarma</option>
+                          <option value="4">Cada 4 horas</option>
+                          <option value="6">Cada 6 horas</option>
+                          <option value="8">Cada 8 horas</option>
+                          <option value="12">Cada 12 horas</option>
+                          <option value="24">Cada 24 horas</option>
+                        </select>
                       </div>
                       <div className="flex-1">
                         <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-2 mb-1 block">Hora Inicio</label>
-                        <input type="time" className="w-full p-3 bg-white border-2 border-transparent focus:border-indigo-200 rounded-xl outline-none font-bold text-gray-800 text-sm" value={nuevoItem.horaInicio} onChange={(e) => setNuevoItem({...nuevoItem, horaInicio: e.target.value})} />
+                        <input type="time" disabled={nuevoItem.frecuencia === 'Sin Alarma'} className="w-full p-3 bg-white border-2 border-transparent focus:border-indigo-200 rounded-xl outline-none font-bold text-gray-800 text-sm disabled:opacity-50" value={nuevoItem.horaInicio} onChange={(e) => setNuevoItem({...nuevoItem, horaInicio: e.target.value})} />
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-4 pt-1">
                       <div className="flex-1">
                         <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-2 mb-1 block">Duración (Días)</label>
-                        <input type="number" disabled={nuevoItem.esSiempre} placeholder="Ej: 7" className="w-full p-3 bg-white border-2 border-transparent focus:border-indigo-200 rounded-xl outline-none font-bold text-gray-800 text-sm disabled:opacity-50" value={nuevoItem.duracion} onChange={(e) => setNuevoItem({...nuevoItem, duracion: e.target.value})} />
+                        <input type="number" disabled={nuevoItem.esSiempre || nuevoItem.frecuencia === 'Sin Alarma'} placeholder="Ej: 7" className="w-full p-3 bg-white border-2 border-transparent focus:border-indigo-200 rounded-xl outline-none font-bold text-gray-800 text-sm disabled:opacity-50" value={nuevoItem.duracion} onChange={(e) => setNuevoItem({...nuevoItem, duracion: e.target.value})} />
                       </div>
                       <label className="flex items-center gap-2 font-bold text-xs text-indigo-600 mt-4 cursor-pointer">
-                        <input type="checkbox" className="w-4 h-4 accent-indigo-600 rounded" checked={nuevoItem.esSiempre} onChange={(e) => setNuevoItem({...nuevoItem, esSiempre: e.target.checked})} /> Siempre
+                        <input type="checkbox" disabled={nuevoItem.frecuencia === 'Sin Alarma'} className="w-4 h-4 accent-indigo-600 rounded" checked={nuevoItem.esSiempre} onChange={(e) => setNuevoItem({...nuevoItem, esSiempre: e.target.checked})} /> Siempre
                       </label>
                     </div>
                   </div>
