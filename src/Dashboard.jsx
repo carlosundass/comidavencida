@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, X, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing } from 'lucide-react';
+import { Trash2, X, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing, Bell } from 'lucide-react';
 import Scanner from './Scanner';
 // IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
@@ -27,12 +27,35 @@ const Dashboard = () => {
   const [mostrarQRCompartir, setMostrarQRCompartir] = useState(false);
   const [mostrarScannerLogin, setMostrarScannerLogin] = useState(false);
 
+  // ESTADO DE PERMISOS DE NOTIFICACIÓN
+  const [permisoNotif, setPermisoNotif] = useState(
+    'Notification' in window ? Notification.permission : 'denied'
+  );
+
   // ==========================================
   // LÓGICA DE NOTIFICACIONES PUSH
   // ==========================================
-  const pedirPermisoNotificaciones = () => {
-    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-      Notification.requestPermission();
+  const pedirPermisoNotificaciones = async () => {
+    if (!('Notification' in window)) {
+      alert("Este navegador no soporta notificaciones de escritorio.");
+      return;
+    }
+    
+    if (Notification.permission !== 'granted') {
+      const permiso = await Notification.requestPermission();
+      setPermisoNotif(permiso);
+      if (permiso === 'granted') {
+        new Notification("¡Notificaciones activadas!", {
+          body: "Ahora Que No Venza te avisará de tus medicamentos.",
+          icon: "https://cdn-icons-png.flaticon.com/512/883/883407.png"
+        });
+      }
+    } else {
+       // Si ya tiene permiso, hacemos una prueba para confirmar que suenan
+       new Notification("Prueba de sonido", {
+          body: "Las notificaciones están funcionando correctamente.",
+          icon: "https://cdn-icons-png.flaticon.com/512/883/883407.png"
+       });
     }
   };
 
@@ -80,7 +103,10 @@ const Dashboard = () => {
     setInputPin('');
     setTabActivo('comida');
     
-    pedirPermisoNotificaciones();
+    // Intenta pedir permiso silenciosamente al entrar si aún es "default"
+    if ('Notification' in window && Notification.permission === 'default') {
+       Notification.requestPermission().then(p => setPermisoNotif(p));
+    }
   };
 
   const cerrarSesion = () => {
@@ -94,7 +120,6 @@ const Dashboard = () => {
 
   const procesarQRLogin = async (codigoQR) => {
     setMostrarScannerLogin(false);
-    // Soporte para QRs antiguos (CV) y nuevos (QNV)
     if (codigoQR.startsWith('CV-LOGIN|') || codigoQR.startsWith('QNV-LOGIN|')) {
       const [, qrId, qrPin] = codigoQR.split('|');
       
@@ -155,6 +180,7 @@ const Dashboard = () => {
     }
   }, [usuarioActual]);
 
+  // RELOJ INTERNO MEJORADO
   useEffect(() => {
     if (!usuarioActual || medicamentos.length === 0) return;
 
@@ -178,15 +204,17 @@ const Dashboard = () => {
           msProximaToma = fechaInicio.getTime();
         }
 
-        if (msProximaToma > 0 && ahora >= msProximaToma) {
+        // Damos un margen de 1 minuto para que la notificación se dispare
+        // y comprobamos si NO se ha enviado ya esa notificación específica
+        if (msProximaToma > 0 && ahora >= msProximaToma && (ahora - msProximaToma < 60000)) {
           const idNotificacion = `${m.id}-${msProximaToma}`;
           
           if (!alarmasEnviadas.has(idNotificacion)) {
             if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification('¡Hora de Medicación!', {
-                body: `Toca dosis de ${m.nombre} (${m.dosis || 'revisar'})`,
+              new Notification('¡Hora de tu medicina!', {
+                body: `Toca: ${m.nombre} (${m.dosis || 'revisa la app'})`,
                 icon: 'https://cdn-icons-png.flaticon.com/512/883/883407.png',
-                vibrate: [200, 100, 200]
+                vibrate: [200, 100, 200, 100, 200] // Vibración fuerte
               });
             }
             setAlarmasEnviadas(prev => new Set(prev).add(idNotificacion));
@@ -195,11 +223,12 @@ const Dashboard = () => {
       });
     };
 
-    revisarAlarmas();
-    const intervalo = setInterval(revisarAlarmas, 30000);
+    revisarAlarmas(); // Ejecuta una vez de inmediato
+    const intervalo = setInterval(revisarAlarmas, 10000); // Revisa cada 10 segundos para no saltarse el minuto
     return () => clearInterval(intervalo);
   }, [usuarioActual, medicamentos, alarmasEnviadas]);
 
+  // Lógica visual para la tarjeta roja en la app
   const checkAlarmaVisual = (m) => {
     if (!m.frecuencia || m.frecuencia === 'Sin Alarma') return false;
     const horasFrec = parseInt(m.frecuencia);
@@ -219,6 +248,7 @@ const Dashboard = () => {
 
   const registrarToma = async (idMedicamento) => {
     const docRef = doc(db, 'despensas', usuarioActual.id, 'medicamentos', idMedicamento);
+    // Al registrar, actualizamos la "ultimaToma" a ESTE momento
     await updateDoc(docRef, { ultimaToma: new Date().getTime() });
   };
 
@@ -256,6 +286,8 @@ const Dashboard = () => {
       datos.horaInicio = nuevoItem.horaInicio;
       datos.duracion = nuevoItem.duracion;
       datos.esSiempre = nuevoItem.esSiempre;
+      // IMPORTANTE: Al crear uno nuevo, le ponemos ultimaToma null para que dependa de la hora de inicio
+      if (!editandoId) datos.ultimaToma = null; 
     }
     
     if (editandoId) {
@@ -378,6 +410,10 @@ const Dashboard = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* BOTÓN PARA FORZAR PERMISOS DE NOTIFICACIÓN */}
+          <button onClick={pedirPermisoNotificaciones} className={`bg-white border border-gray-200 p-2.5 rounded-full hover:bg-blue-50 shadow-sm ${permisoNotif === 'granted' ? 'text-green-500' : 'text-gray-400'}`}>
+            <Bell size={18} />
+          </button>
           <button onClick={() => setMostrarQRCompartir(true)} className="bg-white border border-gray-200 p-2.5 rounded-full text-blue-600 hover:bg-blue-50 shadow-sm"><Share2 size={18} /></button>
           <button onClick={cerrarSesion} className="bg-white border border-gray-200 p-2.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm"><LogOut size={18} /></button>
         </div>
@@ -465,7 +501,7 @@ const Dashboard = () => {
                         </div>
                         {alarmaSonando && (
                           <button onClick={() => registrarToma(m.id)} className="bg-white text-red-600 font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded-lg active:scale-95 flex items-center gap-1 shadow-sm">
-                            <CheckCircle2 size={14}/> Tomar
+                            <CheckCircle2 size={14}/> Tomé
                           </button>
                         )}
                       </div>
@@ -504,9 +540,15 @@ const Dashboard = () => {
           </div>
         )}
 
+        {/* ÁREA DE PUBLICIDAD GOOGLE ADSENSE INTEGRADA */}
+        <div className="mt-8 mb-10 flex justify-center w-full">
+          <div className="w-[320px] h-[50px] bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border border-gray-100">
+            <ins className="adsbygoogle" style={{ display: 'inline-block', width: '320px', height: '50px' }} data-ad-client="ca-pub-3386079946838939" data-ad-slot="TU_SLOT_AQUI"></ins>
+          </div>
+        </div>
       </main>
 
-      {/* BOTÓN FLOTANTE GENERAL (Oculto en tab compras) */}
+      {/* BOTONES FLOTANTES GENERALES (Ocultos en tab compras) */}
       {tabActivo !== 'compras' && (
         <div className="fixed bottom-[80px] left-0 right-0 p-6 flex flex-col gap-3 pointer-events-none z-30">
           <div className="pointer-events-auto flex justify-end">
