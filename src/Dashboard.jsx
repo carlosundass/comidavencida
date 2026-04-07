@@ -5,9 +5,31 @@ import Scanner from './Scanner';
 import { db } from './firebase';
 import { collection, doc, setDoc, getDoc, addDoc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
+// ==========================================
+// COMPONENTE SEGURO PARA ADSENSE EN REACT
+// ==========================================
+const AdSenseBanner = ({ adSlot }) => {
+  useEffect(() => {
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch (err) {
+      console.error('Error cargando AdSense:', err);
+    }
+  }, []);
+
+  return (
+    <div className="w-full flex justify-center my-6 overflow-hidden min-h-[50px] bg-gray-50 rounded-xl">
+      <ins className="adsbygoogle"
+           style={{ display: 'inline-block', width: '320px', height: '100px' }}
+           data-ad-client="ca-pub-3386079946838939"
+           data-ad-slot={adSlot}></ins>
+    </div>
+  );
+};
+
 const Dashboard = () => {
   // ==========================================
-  // 1. ESTADOS PRINCIPALES Y AUTENTICACIÓN
+  // ESTADOS PRINCIPALES Y AUTENTICACIÓN
   // ==========================================
   const [usuarioActual, setUsuarioActual] = useState(() => {
     const guardado = localStorage.getItem('cv_usuario_activo');
@@ -20,27 +42,17 @@ const Dashboard = () => {
   const [inputPin, setInputPin] = useState('');
   const [errorAuth, setErrorAuth] = useState('');
   const [cargandoAuth, setCargandoAuth] = useState(false);
-
   const [tabActivo, setTabActivo] = useState('comida');
 
-  // ESTADOS PARA EL QR
   const [mostrarQRCompartir, setMostrarQRCompartir] = useState(false);
   const [mostrarScannerLogin, setMostrarScannerLogin] = useState(false);
+  const [permisoNotif, setPermisoNotif] = useState('Notification' in window ? Notification.permission : 'denied');
 
-  // ESTADO DE PERMISOS DE NOTIFICACIÓN
-  const [permisoNotif, setPermisoNotif] = useState(
-    'Notification' in window ? Notification.permission : 'denied'
-  );
-
-  // ==========================================
-  // LÓGICA DE NOTIFICACIONES PUSH
-  // ==========================================
   const pedirPermisoNotificaciones = async () => {
     if (!('Notification' in window)) {
-      alert("Este navegador no soporta notificaciones de escritorio.");
+      alert("Este navegador no soporta notificaciones.");
       return;
     }
-    
     if (Notification.permission !== 'granted') {
       const permiso = await Notification.requestPermission();
       setPermisoNotif(permiso);
@@ -51,7 +63,6 @@ const Dashboard = () => {
         });
       }
     } else {
-       // Si ya tiene permiso, hacemos una prueba para confirmar que suenan
        new Notification("Prueba de sonido", {
           body: "Las notificaciones están funcionando correctamente.",
           icon: "https://cdn-icons-png.flaticon.com/512/883/883407.png"
@@ -62,15 +73,12 @@ const Dashboard = () => {
   const manejarAcceso = async () => {
     setErrorAuth('');
     const idLimpio = inputId.trim().toLowerCase();
-    
     if (idLimpio.length < 3) return setErrorAuth('El ID debe tener al menos 3 letras.');
     if (inputPin.length !== 4) return setErrorAuth('El PIN debe ser de 4 números.');
-
     setCargandoAuth(true);
     try {
       const despensaRef = doc(db, 'despensas', idLimpio);
       const despensaSnap = await getDoc(despensaRef);
-
       if (modoLogin === 'crear') {
         if (despensaSnap.exists()) {
           setErrorAuth('Ese nombre de hogar ya existe. Elige otro.');
@@ -89,7 +97,6 @@ const Dashboard = () => {
       }
     } catch (error) {
       setErrorAuth('Error de conexión. Revisa tu internet.');
-      console.error(error);
     } finally {
       setCargandoAuth(false);
     }
@@ -99,11 +106,7 @@ const Dashboard = () => {
     const dataUsuario = { id, pin };
     setUsuarioActual(dataUsuario);
     localStorage.setItem('cv_usuario_activo', JSON.stringify(dataUsuario));
-    setInputId('');
-    setInputPin('');
-    setTabActivo('comida');
-    
-    // Intenta pedir permiso silenciosamente al entrar si aún es "default"
+    setInputId(''); setInputPin(''); setTabActivo('comida');
     if ('Notification' in window && Notification.permission === 'default') {
        Notification.requestPermission().then(p => setPermisoNotif(p));
     }
@@ -112,9 +115,7 @@ const Dashboard = () => {
   const cerrarSesion = () => {
     setUsuarioActual(null);
     localStorage.removeItem('cv_usuario_activo');
-    setProductos([]);
-    setMedicamentos([]);
-    setCompras([]);
+    setProductos([]); setMedicamentos([]); setCompras([]);
     setVista('landing');
   };
 
@@ -122,9 +123,7 @@ const Dashboard = () => {
     setMostrarScannerLogin(false);
     if (codigoQR.startsWith('CV-LOGIN|') || codigoQR.startsWith('QNV-LOGIN|')) {
       const [, qrId, qrPin] = codigoQR.split('|');
-      
-      setCargandoAuth(true);
-      setErrorAuth('');
+      setCargandoAuth(true); setErrorAuth('');
       try {
         const despensaRef = doc(db, 'despensas', qrId);
         const despensaSnap = await getDoc(despensaRef);
@@ -134,7 +133,7 @@ const Dashboard = () => {
           iniciarSesion(qrId, qrPin); 
         }
       } catch(e) {
-        setErrorAuth('Error al leer el QR. Revisa tu internet.');
+        setErrorAuth('Error al leer el QR.');
       } finally {
         setCargandoAuth(false);
       }
@@ -144,7 +143,7 @@ const Dashboard = () => {
   };
 
   // ==========================================
-  // 2. LÓGICA DE DATOS Y ALARMAS (FIREBASE)
+  // LÓGICA DE DATOS Y ALARMAS
   // ==========================================
   const [productos, setProductos] = useState([]);
   const [medicamentos, setMedicamentos] = useState([]);
@@ -161,60 +160,37 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (usuarioActual) {
-      const itemsRef = collection(db, 'despensas', usuarioActual.id, 'items');
-      const unSubItems = onSnapshot(itemsRef, (snapshot) => {
-        setProductos(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      });
-
-      const medsRef = collection(db, 'despensas', usuarioActual.id, 'medicamentos');
-      const unSubMeds = onSnapshot(medsRef, (snapshot) => {
-        setMedicamentos(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      });
-
-      const comprasRef = collection(db, 'despensas', usuarioActual.id, 'compras');
-      const unSubCompras = onSnapshot(comprasRef, (snapshot) => {
-        setCompras(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      });
-
-      return () => { unSubItems(); unSubMeds(); unSubCompras(); };
+      const unsubItems = onSnapshot(collection(db, 'despensas', usuarioActual.id, 'items'), s => setProductos(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+      const unsubMeds = onSnapshot(collection(db, 'despensas', usuarioActual.id, 'medicamentos'), s => setMedicamentos(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+      const unsubCompras = onSnapshot(collection(db, 'despensas', usuarioActual.id, 'compras'), s => setCompras(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+      return () => { unsubItems(); unsubMeds(); unsubCompras(); };
     }
   }, [usuarioActual]);
 
-  // RELOJ INTERNO MEJORADO
   useEffect(() => {
     if (!usuarioActual || medicamentos.length === 0) return;
-
     const revisarAlarmas = () => {
       const ahora = new Date().getTime();
-
       medicamentos.forEach(m => {
         if (!m.frecuencia || m.frecuencia === 'Sin Alarma') return;
-        
         const horasFrec = parseInt(m.frecuencia);
         if (isNaN(horasFrec)) return;
-
         let msProximaToma = 0;
-
-        if (m.ultimaToma) {
-          msProximaToma = m.ultimaToma + (horasFrec * 60 * 60 * 1000);
-        } else if (m.horaInicio) {
+        if (m.ultimaToma) msProximaToma = m.ultimaToma + (horasFrec * 60 * 60 * 1000);
+        else if (m.horaInicio) {
           const [horas, mins] = m.horaInicio.split(':');
           const fechaInicio = new Date();
           fechaInicio.setHours(parseInt(horas), parseInt(mins), 0, 0);
           msProximaToma = fechaInicio.getTime();
         }
-
-        // Damos un margen de 1 minuto para que la notificación se dispare
-        // y comprobamos si NO se ha enviado ya esa notificación específica
         if (msProximaToma > 0 && ahora >= msProximaToma && (ahora - msProximaToma < 60000)) {
           const idNotificacion = `${m.id}-${msProximaToma}`;
-          
           if (!alarmasEnviadas.has(idNotificacion)) {
             if ('Notification' in window && Notification.permission === 'granted') {
               new Notification('¡Hora de tu medicina!', {
                 body: `Toca: ${m.nombre} (${m.dosis || 'revisa la app'})`,
                 icon: 'https://cdn-icons-png.flaticon.com/512/883/883407.png',
-                vibrate: [200, 100, 200, 100, 200] // Vibración fuerte
+                vibrate: [200, 100, 200, 100, 200]
               });
             }
             setAlarmasEnviadas(prev => new Set(prev).add(idNotificacion));
@@ -222,52 +198,40 @@ const Dashboard = () => {
         }
       });
     };
-
-    revisarAlarmas(); // Ejecuta una vez de inmediato
-    const intervalo = setInterval(revisarAlarmas, 10000); // Revisa cada 10 segundos para no saltarse el minuto
+    revisarAlarmas();
+    const intervalo = setInterval(revisarAlarmas, 10000);
     return () => clearInterval(intervalo);
   }, [usuarioActual, medicamentos, alarmasEnviadas]);
 
-  // Lógica visual para la tarjeta roja en la app
   const checkAlarmaVisual = (m) => {
     if (!m.frecuencia || m.frecuencia === 'Sin Alarma') return false;
     const horasFrec = parseInt(m.frecuencia);
     if (isNaN(horasFrec)) return false;
-
     let msProximaToma = 0;
-    if (m.ultimaToma) {
-      msProximaToma = m.ultimaToma + (horasFrec * 60 * 60 * 1000);
-    } else if (m.horaInicio) {
+    if (m.ultimaToma) msProximaToma = m.ultimaToma + (horasFrec * 60 * 60 * 1000);
+    else if (m.horaInicio) {
       const [horas, mins] = m.horaInicio.split(':');
-      const d = new Date();
-      d.setHours(parseInt(horas), parseInt(mins), 0, 0);
+      const d = new Date(); d.setHours(parseInt(horas), parseInt(mins), 0, 0);
       msProximaToma = d.getTime();
     }
     return msProximaToma > 0 && new Date().getTime() >= msProximaToma;
   };
 
   const registrarToma = async (idMedicamento) => {
-    const docRef = doc(db, 'despensas', usuarioActual.id, 'medicamentos', idMedicamento);
-    // Al registrar, actualizamos la "ultimaToma" a ESTE momento
-    await updateDoc(docRef, { ultimaToma: new Date().getTime() });
+    await updateDoc(doc(db, 'despensas', usuarioActual.id, 'medicamentos', idMedicamento), { ultimaToma: new Date().getTime() });
   };
-
 
   const abrirFormulario = (itemToEdit = null, tipoPredefinido = 'alimento') => {
     if (itemToEdit) {
       setEditandoId(itemToEdit.id);
       setNuevoItem({
-        tipo: tipoPredefinido,
-        nombre: itemToEdit.nombre || '', fecha: itemToEdit.fecha || '',
+        tipo: tipoPredefinido, nombre: itemToEdit.nombre || '', fecha: itemToEdit.fecha || '',
         dosis: itemToEdit.dosis || '', frecuencia: itemToEdit.frecuencia || '8', horaInicio: itemToEdit.horaInicio || '08:00',
         duracion: itemToEdit.duracion || '7', esSiempre: itemToEdit.esSiempre || false
       });
     } else {
       setEditandoId(null);
-      setNuevoItem({ 
-        tipo: tipoPredefinido, nombre: '', fecha: '', 
-        dosis: '', frecuencia: '8', horaInicio: '08:00', duracion: '7', esSiempre: false 
-      });
+      setNuevoItem({ tipo: tipoPredefinido, nombre: '', fecha: '', dosis: '', frecuencia: '8', horaInicio: '08:00', duracion: '7', esSiempre: false });
     }
     setMostrarForm(true);
   };
@@ -275,43 +239,22 @@ const Dashboard = () => {
   const agregarOEditarItem = async () => {
     if (!nuevoItem.nombre) return;
     const coleccionDestino = nuevoItem.tipo === 'alimento' ? 'items' : 'medicamentos';
-    
-    const datos = {
-      nombre: nuevoItem.nombre, fecha: nuevoItem.fecha || '', actualizadoEn: new Date().getTime()
-    };
-
+    const datos = { nombre: nuevoItem.nombre, fecha: nuevoItem.fecha || '', actualizadoEn: new Date().getTime() };
     if (nuevoItem.tipo === 'medicamento') {
-      datos.dosis = nuevoItem.dosis || '';
-      datos.frecuencia = nuevoItem.frecuencia;
-      datos.horaInicio = nuevoItem.horaInicio;
-      datos.duracion = nuevoItem.duracion;
-      datos.esSiempre = nuevoItem.esSiempre;
-      // IMPORTANTE: Al crear uno nuevo, le ponemos ultimaToma null para que dependa de la hora de inicio
+      datos.dosis = nuevoItem.dosis || ''; datos.frecuencia = nuevoItem.frecuencia; datos.horaInicio = nuevoItem.horaInicio;
+      datos.duracion = nuevoItem.duracion; datos.esSiempre = nuevoItem.esSiempre;
       if (!editandoId) datos.ultimaToma = null; 
     }
-    
-    if (editandoId) {
-      await updateDoc(doc(db, 'despensas', usuarioActual.id, coleccionDestino, editandoId), datos);
-    } else {
-      datos.creadoEn = new Date().getTime();
-      await addDoc(collection(db, 'despensas', usuarioActual.id, coleccionDestino), datos);
-    }
-    
+    if (editandoId) await updateDoc(doc(db, 'despensas', usuarioActual.id, coleccionDestino, editandoId), datos);
+    else { datos.creadoEn = new Date().getTime(); await addDoc(collection(db, 'despensas', usuarioActual.id, coleccionDestino), datos); }
     setMostrarForm(false); setEditandoId(null);
   };
 
   const borrarItem = async (itemId, coleccion) => { await deleteDoc(doc(db, 'despensas', usuarioActual.id, coleccion, itemId)); };
-
-  const agregarACompras = async (nombreProducto) => {
-    await addDoc(collection(db, 'despensas', usuarioActual.id, 'compras'), { nombre: nombreProducto, comprado: false, creadoEn: new Date().getTime() });
-  };
-
-  const toggleCompra = async (item) => {
-    await updateDoc(doc(db, 'despensas', usuarioActual.id, 'compras', item.id), { comprado: !item.comprado });
-  };
+  const agregarACompras = async (nombre) => { await addDoc(collection(db, 'despensas', usuarioActual.id, 'compras'), { nombre, comprado: false, creadoEn: new Date().getTime() }); };
+  const toggleCompra = async (item) => { await updateDoc(doc(db, 'despensas', usuarioActual.id, 'compras', item.id), { comprado: !item.comprado }); };
 
   const calcularDias = (f) => { if (!f) return 999; return Math.ceil((new Date(f) - new Date()) / (1000 * 60 * 60 * 24)); };
-
   const obtenerEstado = (dias) => {
     if (dias < 0) return { titulo: 'VENCIDO', bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-500', icono: '💀' };
     if (dias <= 3) return { titulo: '¡URGENTE!', bg: 'bg-[#FFEBEE]', border: 'border-[#FFCDD2]', text: 'text-red-700', icono: '🔴' };
@@ -320,51 +263,55 @@ const Dashboard = () => {
   };
 
   // ==========================================
-  // RENDER PANTALLAS LEGALES Y LANDING
+  // RENDER PANTALLAS (LANDING SEO PARA ADSENSE)
   // ==========================================
-  if (!usuarioActual && vista === 'privacidad') return <div className="p-6 text-gray-500">Política de Privacidad... <button onClick={()=>setVista('landing')}>Volver</button></div>;
-  if (!usuarioActual && vista === 'terminos') return <div className="p-6 text-gray-500">Términos... <button onClick={()=>setVista('landing')}>Volver</button></div>;
-  if (!usuarioActual && vista === 'contacto') return <div className="p-6 text-gray-500">Contacto... <button onClick={()=>setVista('landing')}>Volver</button></div>;
-
   if (!usuarioActual && vista === 'landing') {
     return (
-      <div className="min-h-screen bg-[#F8F9FB] flex flex-col">
-        <header className="p-6 bg-white shadow-sm flex justify-between items-center">
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col font-sans">
+        <header className="p-6 bg-white shadow-sm flex justify-between items-center sticky top-0 z-50">
           <h1 className="text-2xl font-black italic text-gray-900">quenovenza</h1>
           <button onClick={() => { setVista('login'); setModoLogin('entrar'); }} className="text-blue-600 font-bold text-[11px] uppercase tracking-wider bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors">Entrar</button>
         </header>
 
         <main className="flex-1 p-6 max-w-2xl mx-auto w-full">
           <div className="text-center mt-8 mb-10">
-            <div className="inline-block bg-green-100 text-green-700 font-black px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest mb-4 shadow-sm">100% Gratuita para siempre</div>
-            <h2 className="text-4xl font-black tracking-tight text-gray-900 leading-tight mb-4">Evita el desperdicio y <span className="text-blue-600">ahorra dinero</span>.</h2>
-            <p className="text-gray-600 font-medium text-lg leading-relaxed">La herramienta sin costo para organizar tu refrigerador, despensa y tu botiquín médico familiar.</p>
+            <div className="inline-block bg-green-100 text-green-700 font-black px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest mb-4 shadow-sm">Herramienta 100% Gratuita</div>
+            <h2 className="text-4xl font-black tracking-tight text-gray-900 leading-tight mb-4">Evita el desperdicio alimentario y <span className="text-blue-600">ahorra dinero</span> en tu hogar.</h2>
+            <p className="text-gray-600 font-medium text-lg leading-relaxed">Que No Venza es la plataforma definitiva para organizar tu refrigerador, despensa y botiquín médico. Controla fechas de caducidad y recibe notificaciones de salud.</p>
           </div>
 
-          <div className="space-y-4 mb-10">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
-              <div className="bg-green-100 text-green-600 p-3 rounded-full h-fit"><DollarSign size={24} /></div>
-              <div><h3 className="font-black text-gray-900 mb-1">Ahorro Inteligente</h3><p className="text-gray-500 text-sm">Organizar tu despensa evita comprar productos duplicados.</p></div>
-            </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
-              <div className="bg-blue-100 text-blue-600 p-3 rounded-full h-fit"><Leaf size={24} /></div>
-              <div><h3 className="font-black text-gray-900 mb-1">Impacto Ambiental</h3><p className="text-gray-500 text-sm">El desperdicio de comida es un problema ecológico grave.</p></div>
-            </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
-              <div className="bg-indigo-100 text-indigo-600 p-3 rounded-full h-fit"><BellRing size={24} /></div>
-              <div><h3 className="font-black text-gray-900 mb-1">Botiquín y Notificaciones</h3><p className="text-gray-500 text-sm">Registra medicinas y recibe alarmas cuando te toque la dosis.</p></div>
-            </div>
+          <AdSenseBanner adSlot="PON_TU_SLOT_AQUI_1" />
+
+          {/* SECCIÓN SEO PARA ADSENSE: TEXTO DE ALTO VALOR */}
+          <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mb-10">
+            <h3 className="text-2xl font-black text-gray-900 mb-4">¿Por qué es crucial organizar tu despensa?</h3>
+            <p className="text-gray-600 leading-relaxed mb-4">El desperdicio de comida es uno de los problemas económicos y ambientales más silenciosos en los hogares modernos. Según estudios recientes, una familia promedio tira a la basura cientos de dólares anuales simplemente por olvidar lo que hay al fondo del refrigerador. <strong>Que No Venza</strong> actúa como tu asistente personal, utilizando un sistema de semáforo visual para advertirte qué alimentos requieren tu atención inmediata.</p>
+            <p className="text-gray-600 leading-relaxed mb-4">Además de la comida, la correcta administración de medicamentos es fundamental para la salud. Consumir remedios caducados o saltarse las dosis recetadas retrasa las recuperaciones. Nuestra plataforma incorpora una sección dedicada al botiquín familiar, permitiéndote no solo registrar las fechas límite de uso, sino también configurar <strong>alarmas y notificaciones push</strong> que te avisarán en tiempo real cuándo debes tomar tus tratamientos o los de tus seres queridos.</p>
+            <h4 className="text-xl font-bold text-gray-800 mt-6 mb-3">Beneficios clave de nuestra plataforma:</h4>
+            <ul className="list-disc pl-5 text-gray-600 space-y-2 mb-4">
+              <li><strong>Control visual rápido:</strong> Identifica al instante qué productos están próximos a vencer mediante etiquetas de colores.</li>
+              <li><strong>Listas de compras dinámicas:</strong> Añade productos faltantes a tu lista de supermercado con un solo toque.</li>
+              <li><strong>Recordatorios médicos precisos:</strong> Establece frecuencias horarias y recibe alertas para nunca olvidar una pastilla.</li>
+              <li><strong>Privacidad garantizada:</strong> No solicitamos correos electrónicos, números de teléfono ni datos personales sensibles. Funciona con un ID familiar seguro y encriptado.</li>
+            </ul>
           </div>
 
           <button onClick={() => { setVista('login'); setModoLogin('crear'); }} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm flex justify-center items-center gap-2 mb-10 transition-transform">Crear Hogar Gratis <ArrowRight size={18} /></button>
         </main>
-        <footer className="bg-gray-100 p-6 text-center text-xs text-gray-400 font-medium mt-auto">
-          <p className="mb-4">© 2026 Que No Venza App.</p>
+        
+        <footer className="bg-gray-100 p-8 text-center text-xs text-gray-500 font-medium mt-auto">
+          <div className="max-w-2xl mx-auto">
+            <p className="mb-4">© 2026 Que No Venza. Una solución para la gestión inteligente del hogar.</p>
+            <p className="mb-6 opacity-70">El propósito de este sitio es ofrecer herramientas de productividad personal. No reemplazamos el consejo médico profesional.</p>
+          </div>
         </footer>
       </div>
     );
   }
 
+  // ==========================================
+  // RENDER: PANTALLA LOGIN
+  // ==========================================
   if (!usuarioActual && vista === 'login') {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col justify-center items-center px-6 relative">
@@ -394,7 +341,7 @@ const Dashboard = () => {
   }
 
   // ==========================================
-  // RENDER PANTALLA 3: DASHBOARD PRINCIPAL
+  // RENDER: DASHBOARD PRINCIPAL
   // ==========================================
   const qrData = `QNV-LOGIN|${usuarioActual?.id || 'error'}|${usuarioActual?.pin || '0000'}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrData)}`;
@@ -410,17 +357,13 @@ const Dashboard = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* BOTÓN PARA FORZAR PERMISOS DE NOTIFICACIÓN */}
-          <button onClick={pedirPermisoNotificaciones} className={`bg-white border border-gray-200 p-2.5 rounded-full hover:bg-blue-50 shadow-sm ${permisoNotif === 'granted' ? 'text-green-500' : 'text-gray-400'}`}>
-            <Bell size={18} />
-          </button>
+          <button onClick={pedirPermisoNotificaciones} className={`bg-white border border-gray-200 p-2.5 rounded-full hover:bg-blue-50 shadow-sm ${permisoNotif === 'granted' ? 'text-green-500' : 'text-gray-400'}`}><Bell size={18} /></button>
           <button onClick={() => setMostrarQRCompartir(true)} className="bg-white border border-gray-200 p-2.5 rounded-full text-blue-600 hover:bg-blue-50 shadow-sm"><Share2 size={18} /></button>
           <button onClick={cerrarSesion} className="bg-white border border-gray-200 p-2.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm"><LogOut size={18} /></button>
         </div>
       </header>
 
       <main className="flex-1 px-6 mt-2">
-        {/* TAB 1: COMIDA */}
         {tabActivo === 'comida' && (
           <div className="animate-in fade-in duration-300">
             <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Semáforo de Alimentos</h2>
@@ -447,7 +390,7 @@ const Dashboard = () => {
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <button onClick={() => abrirFormulario(p, 'alimento')} className="text-gray-400 hover:text-blue-500 p-1.5 bg-white rounded-full shadow-sm"><Edit2 size={12} /></button>
-                        <button onClick={() => agregarACompras(p.nombre)} className="text-gray-400 hover:text-green-500 p-1.5 bg-white rounded-full shadow-sm" title="Añadir a Compras"><ShoppingCart size={12} /></button>
+                        <button onClick={() => agregarACompras(p.nombre)} className="text-gray-400 hover:text-green-500 p-1.5 bg-white rounded-full shadow-sm"><ShoppingCart size={12} /></button>
                         <button onClick={() => borrarItem(p.id, 'items')} className="text-gray-400 hover:text-red-500 p-1.5 bg-white rounded-full shadow-sm"><Trash2 size={12} /></button>
                       </div>
                     </div>
@@ -455,10 +398,10 @@ const Dashboard = () => {
                 );
               })}
             </div>
+            <AdSenseBanner adSlot="PON_TU_SLOT_AQUI_2" />
           </div>
         )}
 
-        {/* TAB 2: MEDICAMENTOS */}
         {tabActivo === 'medicamentos' && (
           <div className="animate-in fade-in duration-300">
             <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Botiquín y Tratamientos</h2>
@@ -510,6 +453,7 @@ const Dashboard = () => {
                 );
               })}
             </div>
+            <AdSenseBanner adSlot="PON_TU_SLOT_AQUI_3" />
           </div>
         )}
 
@@ -539,16 +483,8 @@ const Dashboard = () => {
             </div>
           </div>
         )}
-
-        {/* ÁREA DE PUBLICIDAD GOOGLE ADSENSE INTEGRADA */}
-        <div className="mt-8 mb-10 flex justify-center w-full">
-          <div className="w-[320px] h-[50px] bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border border-gray-100">
-            <ins className="adsbygoogle" style={{ display: 'inline-block', width: '320px', height: '50px' }} data-ad-client="ca-pub-3386079946838939" data-ad-slot="TU_SLOT_AQUI"></ins>
-          </div>
-        </div>
       </main>
 
-      {/* BOTONES FLOTANTES GENERALES (Ocultos en tab compras) */}
       {tabActivo !== 'compras' && (
         <div className="fixed bottom-[80px] left-0 right-0 p-6 flex flex-col gap-3 pointer-events-none z-30">
           <div className="pointer-events-auto flex justify-end">
@@ -560,7 +496,6 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* NAVEGACIÓN INFERIOR (3 TABS) */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 pb-safe z-40">
         <div className="max-w-md mx-auto flex justify-between px-4 py-2">
           <button onClick={() => setTabActivo('comida')} className={`flex flex-col items-center p-2 transition-colors flex-1 ${tabActivo === 'comida' ? 'text-blue-600' : 'text-gray-400'}`}>
@@ -580,7 +515,6 @@ const Dashboard = () => {
         </div>
       </nav>
 
-      {/* MODAL QR DE INVITACIÓN */}
       {mostrarQRCompartir && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMostrarQRCompartir(false)}></div>
@@ -597,7 +531,6 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* FORMULARIO DINÁMICO */}
       {mostrarForm && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMostrarForm(false)}></div>
