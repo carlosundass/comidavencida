@@ -263,7 +263,71 @@ const Dashboard = () => {
   };
 
   // ==========================================
-  // RENDER PANTALLAS (LANDING SEO PARA ADSENSE)
+  // RENDER PANTALLAS LEGALES COMPLETAS (PARA ADSENSE)
+  // ==========================================
+  
+  if (!usuarioActual && vista === 'privacidad') {
+    return (
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12">
+        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
+        <div className="max-w-2xl mx-auto bg-white p-8 rounded-[2rem] shadow-xl mt-8">
+          <h1 className="text-2xl font-black mb-6 text-gray-900">Política de Privacidad</h1>
+          <div className="text-gray-600 space-y-4 text-sm leading-relaxed">
+            <p><strong>Última actualización: Abril 2026</strong></p>
+            <p>En Que No Venza, nos tomamos muy en serio tu privacidad. Esta política explica cómo recopilamos, usamos y protegemos tu información cuando utilizas nuestra herramienta de gestión de hogar.</p>
+            <h3 className="font-bold text-gray-900">1. Información que recopilamos</h3>
+            <p>No recopilamos información personal identificable como nombres reales, correos electrónicos o números de teléfono. Solo almacenamos el "Nombre de Hogar" y el "PIN" que tú mismo creas para acceder a tu cuenta privada, además de los datos de los alimentos, medicamentos y lista de compras que ingresas voluntariamente.</p>
+            <h3 className="font-bold text-gray-900">2. Publicidad (Google AdSense)</h3>
+            <p>Utilizamos Google AdSense para mostrar anuncios y mantener este servicio gratuito. Google utiliza cookies para publicar anuncios basados en tus visitas anteriores a nuestra aplicación u otros sitios web de Internet. Puedes inhabilitar la publicidad personalizada visitando la Configuración de anuncios de Google.</p>
+            <h3 className="font-bold text-gray-900">3. Almacenamiento de Datos</h3>
+            <p>Tus datos de inventario se almacenan de forma segura utilizando los servicios en la nube de Google (Firebase Firestore). No vendemos, alquilamos ni compartimos tus datos de inventario con terceros bajo ninguna circunstancia.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!usuarioActual && vista === 'terminos') {
+    return (
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12">
+        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
+        <div className="max-w-2xl mx-auto bg-white p-8 rounded-[2rem] shadow-xl mt-8">
+          <h1 className="text-2xl font-black mb-6 text-gray-900">Términos y Condiciones</h1>
+          <div className="text-gray-600 space-y-4 text-sm leading-relaxed">
+            <h3 className="font-bold text-gray-900">1. Servicio 100% Gratuito</h3>
+            <p>Que No Venza se ofrece de manera completamente gratuita para todos los usuarios. No existen cargos ocultos, versiones premium ni suscripciones. La plataforma se mantiene operativa y en constante mejora gracias a la publicidad mostrada en pantalla.</p>
+            <h3 className="font-bold text-gray-900">2. Aceptación de los Términos</h3>
+            <p>Al acceder y utilizar la plataforma Que No Venza, aceptas estar sujeto a estos Términos y Condiciones en su totalidad. Si no estás de acuerdo con alguna parte, por favor no utilices la aplicación.</p>
+            <h3 className="font-bold text-gray-900">3. Uso de la Aplicación</h3>
+            <p>Que No Venza es una herramienta de organización personal y familiar. Eres el único responsable de mantener la confidencialidad de tu ID de Hogar y PIN para proteger tu información.</p>
+            <h3 className="font-bold text-gray-900">4. Limitación de Responsabilidad Médica y de Salud</h3>
+            <p>Esta aplicación proporciona cálculos estimativos de fechas de vencimiento y sistemas de alarmas para recordatorios. <strong>No somos un servicio médico.</strong> No nos hacemos responsables por alimentos consumidos en mal estado, intoxicaciones, pérdidas económicas, olvidos de medicación o cualquier problema de salud derivado del uso de la información ingresada. La revisión final del estado real del alimento o el cumplimiento estricto de la dosis es responsabilidad exclusiva del usuario.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!usuarioActual && vista === 'contacto') {
+    return (
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12">
+        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
+        <div className="max-w-md mx-auto w-full mt-10">
+          <div className="bg-white p-8 rounded-[2rem] shadow-xl text-center border border-gray-100">
+            <h1 className="text-3xl font-black mb-4 text-gray-900 italic">Contacto</h1>
+            <p className="text-gray-500 text-sm mb-8 leading-relaxed">¿Tienes dudas, sugerencias de nuevas funciones o encontraste algún error en la aplicación? ¡Nos encantaría escucharte!</p>
+            <a href="mailto:hola@quenovenza.cl" className="inline-block w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm transition-transform">
+              Enviar un correo
+            </a>
+            <p className="mt-6 text-xs text-gray-400">Nuestro equipo te responderá lo antes posible.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // RENDER PANTALLA LANDING SEO (PARA ADSENSE)
   // ==========================================
   if (!usuarioActual && vista === 'landing') {
     return (
@@ -302,7 +366,12 @@ const Dashboard = () => {
         <footer className="bg-gray-100 p-8 text-center text-xs text-gray-500 font-medium mt-auto">
           <div className="max-w-2xl mx-auto">
             <p className="mb-4">© 2026 Que No Venza. Una solución para la gestión inteligente del hogar.</p>
-            <p className="mb-6 opacity-70">El propósito de este sitio es ofrecer herramientas de productividad personal. No reemplazamos el consejo médico profesional.</p>
+            <div className="flex justify-center gap-4 flex-wrap mb-6">
+              <button onClick={() => setVista('privacidad')} className="hover:text-gray-900 transition-colors">Política de Privacidad</button>
+              <button onClick={() => setVista('terminos')} className="hover:text-gray-900 transition-colors">Términos y Condiciones</button>
+              <button onClick={() => setVista('contacto')} className="hover:text-gray-900 transition-colors">Contacto</button>
+            </div>
+            <p className="opacity-70">El propósito de este sitio es ofrecer herramientas de productividad personal. No reemplazamos el consejo médico profesional.</p>
           </div>
         </footer>
       </div>
@@ -364,6 +433,7 @@ const Dashboard = () => {
       </header>
 
       <main className="flex-1 px-6 mt-2">
+        {/* TAB 1: COMIDA */}
         {tabActivo === 'comida' && (
           <div className="animate-in fade-in duration-300">
             <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Semáforo de Alimentos</h2>
@@ -390,7 +460,7 @@ const Dashboard = () => {
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <button onClick={() => abrirFormulario(p, 'alimento')} className="text-gray-400 hover:text-blue-500 p-1.5 bg-white rounded-full shadow-sm"><Edit2 size={12} /></button>
-                        <button onClick={() => agregarACompras(p.nombre)} className="text-gray-400 hover:text-green-500 p-1.5 bg-white rounded-full shadow-sm"><ShoppingCart size={12} /></button>
+                        <button onClick={() => agregarACompras(p.nombre)} className="text-gray-400 hover:text-green-500 p-1.5 bg-white rounded-full shadow-sm" title="Añadir a Compras"><ShoppingCart size={12} /></button>
                         <button onClick={() => borrarItem(p.id, 'items')} className="text-gray-400 hover:text-red-500 p-1.5 bg-white rounded-full shadow-sm"><Trash2 size={12} /></button>
                       </div>
                     </div>
@@ -402,6 +472,7 @@ const Dashboard = () => {
           </div>
         )}
 
+        {/* TAB 2: MEDICAMENTOS */}
         {tabActivo === 'medicamentos' && (
           <div className="animate-in fade-in duration-300">
             <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Botiquín y Tratamientos</h2>
@@ -485,6 +556,7 @@ const Dashboard = () => {
         )}
       </main>
 
+      {/* BOTÓN FLOTANTE GENERAL (Oculto en tab compras) */}
       {tabActivo !== 'compras' && (
         <div className="fixed bottom-[80px] left-0 right-0 p-6 flex flex-col gap-3 pointer-events-none z-30">
           <div className="pointer-events-auto flex justify-end">
@@ -496,6 +568,7 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* NAVEGACIÓN INFERIOR (3 TABS) */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 pb-safe z-40">
         <div className="max-w-md mx-auto flex justify-between px-4 py-2">
           <button onClick={() => setTabActivo('comida')} className={`flex flex-col items-center p-2 transition-colors flex-1 ${tabActivo === 'comida' ? 'text-blue-600' : 'text-gray-400'}`}>
@@ -515,6 +588,7 @@ const Dashboard = () => {
         </div>
       </nav>
 
+      {/* MODAL QR DE INVITACIÓN */}
       {mostrarQRCompartir && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMostrarQRCompartir(false)}></div>
@@ -531,6 +605,7 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* FORMULARIO DINÁMICO */}
       {mostrarForm && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMostrarForm(false)}></div>
