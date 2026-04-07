@@ -28,17 +28,24 @@ const AdSenseBanner = ({ adSlot }) => {
 };
 
 // ==========================================
-// SECCIÓN DE ILUSTRACIÓN HERO (NUEVOS VECTORES DInÁMICOS)
+// SECCIÓN DE ILUSTRACIÓN HERO (PURO CSS E ICONOS)
 // ==========================================
 const HeroIllustration = () => (
   <div className="relative w-full flex justify-center my-10 animate-in fade-in duration-500 delay-200">
-    <div className="absolute inset-0 bg-blue-50/50 rounded-full blur-3xl opacity-50 scale-125"></div>
+    <div className="absolute inset-0 bg-blue-50/50 rounded-full blur-3xl opacity-50 scale-125 pointer-events-none"></div>
     <div className="relative flex flex-col md:flex-row items-center gap-10 md:gap-4 p-6 bg-white rounded-3xl shadow-lg border border-gray-100 z-10 max-w-xl mx-auto">
-      <img src="https://quenovenza.vercel.app/img/organised-fridge.svg" alt="Refrigerador Organizado" className="w-[120px] h-[120px] md:w-[150px] md:h-[150px]" />
-      <div className="flex flex-col gap-3">
+      
+      {/* Ilustración de código en vez de imagen */}
+      <div className="w-[120px] h-[120px] md:w-[150px] md:h-[150px] bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[2.5rem] flex items-center justify-center shadow-inner relative border-[6px] border-white rotate-3 flex-shrink-0">
+        <ShoppingCart size={48} className="text-blue-400 absolute -ml-4 -mt-4 opacity-80" />
+        <Pill size={40} className="text-indigo-400 absolute bottom-4 right-6 opacity-80" />
+        <BellRing size={32} className="text-red-400 absolute top-5 right-5 animate-bounce shadow-sm rounded-full bg-white p-1" />
+      </div>
+
+      <div className="flex flex-col gap-3 text-center md:text-left">
         <h4 className="text-xl font-black text-gray-900 leading-tight">Tu asistente personal de despensa y botiquín</h4>
         <p className="text-sm text-gray-500 leading-relaxed">Organiza, controla y recibe notificaciones antes de que sea tarde. Todo en familia.</p>
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center justify-center md:justify-start gap-2 mt-1">
           <Leaf size={16} className="text-green-500" />
           <Pill size={16} className="text-indigo-500" />
           <BellRing size={16} className="text-red-500" />
@@ -326,7 +333,7 @@ const Dashboard = () => {
             <h3 className="font-bold text-gray-900 mt-6 mb-2">4. Limitación de Responsabilidad Médica y de Salud</h3>
             <p>Esta aplicación proporciona cálculos estimativos de fechas de vencimiento y sistemas de alarmas para recordatorios. <strong>No somos un servicio médico.</strong> No nos hacemos responsables por alimentos consumidos en mal estado, intoxicaciones, pérdidas económicas, olvidos de medicación o cualquier problema de salud derivado del uso de la información ingresada. La revisión final del estado real del alimento o el cumplimiento estricto de la dosis es responsabilidad exclusiva del usuario.</p>
             <h3 className="font-bold text-gray-900 mt-6 mb-2">5. Derechos de Autor</h3>
-            <p>El código, el diseño visual, los gráficos vectoriales y el contenido de este sitio son propiedad de Que No Venza y están protegidos por leyes de propiedad intelectual.</p>
+            <p>El código, el diseño visual, y el contenido de este sitio son propiedad de Que No Venza y están protegidos por leyes de propiedad intelectual.</p>
           </div>
         </div>
       </div>
@@ -357,9 +364,9 @@ const Dashboard = () => {
   if (!usuarioActual && vista === 'landing') {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col font-sans overflow-x-hidden relative">
-        {/* VECTORES DE FONDO DECORATIVOS */}
-        <div className="absolute top-[100px] left-[-50px] opacity-10 rotate-12 pointer-events-none scale-150"><img src="https://quenovenza.vercel.app/img/floating-fruits.svg" alt="" /></div>
-        <div className="absolute bottom-[200px] right-[-100px] opacity-10 -rotate-12 pointer-events-none scale-200"><img src="https://quenovenza.vercel.app/img/floating-pills.svg" alt="" /></div>
+        {/* VECTORES DE FONDO DECORATIVOS (PURO CÓDIGO) */}
+        <div className="absolute top-[10%] left-[-5%] opacity-5 pointer-events-none -rotate-12"><Leaf size={250} /></div>
+        <div className="absolute bottom-[20%] right-[-10%] opacity-5 pointer-events-none rotate-12"><Pill size={300} /></div>
 
         <header className="p-6 bg-white shadow-sm flex justify-between items-center sticky top-0 z-50">
           <h1 className="text-2xl font-black italic text-gray-900">quenovenza</h1>
@@ -373,17 +380,19 @@ const Dashboard = () => {
             <p className="text-gray-600 font-medium text-lg md:text-xl leading-relaxed max-w-lg mx-auto animate-in fade-in duration-500 delay-150">Que No Venza es la plataforma definitiva para gestionar las fechas de caducidad en tu refrigerador, despensa y botiquín familiar.</p>
           </div>
 
-          {/* ILUSTRACIÓN HERO DE VECTORES DINÁMICOS */}
+          {/* ILUSTRACIÓN HERO (CSS E ICONOS NATIVOS) */}
           <HeroIllustration />
 
           <AdSenseBanner adSlot="PON_TU_SLOT_AQUI_1" />
 
-          {/* SECCIÓN SEO DINÁMICA CON VECTORES (PARA ADSENSE) */}
+          {/* SECCIÓN SEO DINÁMICA (PARA ADSENSE) */}
           <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-xl border border-gray-100 mb-10 relative overflow-hidden">
-             <div className="absolute top-[-20px] right-[-20px] opacity-10 pointer-events-none"><img src="https://quenovenza.vercel.app/img/blob-blue.svg" alt="" className="scale-150" /></div>
+             <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
             
             <div className="flex flex-col md:flex-row gap-10 items-center mb-10">
-              <img src="https://quenovenza.vercel.app/img/organised-milk.svg" alt="Leche Organizada" className="w-[150px] h-[150px] rotate-[-5deg]" />
+              <div className="w-[120px] h-[120px] bg-green-50 rounded-[2rem] flex items-center justify-center rotate-[-5deg] shadow-lg border border-green-100 flex-shrink-0">
+                <Leaf size={60} className="text-green-500" />
+              </div>
               <div className="flex-1">
                 <h3 className="text-2xl font-black text-gray-900 mb-4 leading-tight">¿Por qué es crucial organizar tu despensa?</h3>
                 <p className="text-gray-600 leading-relaxed text-sm">El desperdicio de comida es uno de los problemas económicos y ambientales más silenciosos en los hogares modernos. Según estudios recientes, una familia promedio tira a la basura cientos de dólares anuales simplemente por olvidar lo que hay al fondo del refrigerador. <strong>Que No Venza</strong> actúa como tu asistente personal, utilizando un sistema de semáforo visual para advertirte qué alimentos requieren tu atención inmediata, ayudándote a planificar tus comidas.</p>
@@ -395,10 +404,12 @@ const Dashboard = () => {
                 <h3 className="text-2xl font-black text-gray-900 mb-4 leading-tight">Botiquín Digital y Alertas de Salud</h3>
                 <p className="text-gray-600 leading-relaxed text-sm">Además de la comida, la correcta administración de medicamentos es fundamental para la salud de tu familia. Consumir remedios caducados o saltarse las dosis recetadas retrasa las recuperaciones. Nuestra plataforma incorpora una sección dedicada al botiquín familiar, permitiéndote no solo registrar las fechas límite de uso, sino también configurar <strong>alarmas y notificaciones push</strong> reales que te avisarán en tiempo real cuándo debes tomar tus tratamientos.</p>
               </div>
-              <img src="https://quenovenza.vercel.app/img/health-notification.svg" alt="Notificación de Salud" className="w-[150px] h-[150px] rotate-[5deg]" />
+              <div className="w-[120px] h-[120px] bg-indigo-50 rounded-[2rem] flex items-center justify-center rotate-[5deg] shadow-lg border border-indigo-100 flex-shrink-0">
+                <Clock size={60} className="text-indigo-500" />
+              </div>
             </div>
 
-            <h4 className="text-xl font-bold text-gray-800 mt-12 mb-6 text-center">Nuestra plataforma dinámica te ofrece:</h4>
+            <h4 className="text-xl font-bold text-gray-800 mt-12 mb-6 text-center">Nuestra plataforma te ofrece:</h4>
             <div className="grid md:grid-cols-2 gap-6 mb-6">
               {[
                 {icon: Leaf, color: 'green', title: 'Control Visual', text: 'Identifica rápido qué productos vencen mediante colores.'},
@@ -459,7 +470,7 @@ const Dashboard = () => {
             <div className="space-y-4">
               <div><label className="text-[10px] font-black text-gray-400 uppercase ml-2"><Home size={12} className="inline mr-1"/> Nombre del Hogar</label><input type="text" placeholder="Ej: FamiliaRojas" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold text-gray-800" value={inputId} onChange={(e) => setInputId(e.target.value.replace(/\s+/g, ''))} /></div>
               <div><label className="text-[10px] font-black text-gray-400 uppercase ml-2"><Lock size={12} className="inline mr-1"/> PIN (4 números)</label><input type="password" inputMode="numeric" maxLength={4} placeholder="****" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-black text-2xl text-center tracking-[0.5em] text-gray-800" value={inputPin} onChange={(e) => setInputPin(e.target.value.replace(/\D/g, ''))} /></div>
-              {errorAuth && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center border border-red-100animate-in fade-in">{errorAuth}</div>}
+              {errorAuth && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center border border-red-100 animate-in fade-in">{errorAuth}</div>}
               <button disabled={cargandoAuth} onClick={manejarAcceso} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl uppercase text-sm mt-4 active:scale-95 transition-transform">{cargandoAuth ? 'Conectando...' : (modoLogin === 'crear' ? 'Abrir Hogar 🚀' : 'Entrar ✅')}</button>
             </div>
             <div className="mt-8 pt-6 border-t border-gray-100">
