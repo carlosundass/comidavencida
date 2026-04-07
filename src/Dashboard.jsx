@@ -27,6 +27,27 @@ const AdSenseBanner = ({ adSlot }) => {
   );
 };
 
+// ==========================================
+// SECCIÓN DE ILUSTRACIÓN HERO (NUEVOS VECTORES DInÁMICOS)
+// ==========================================
+const HeroIllustration = () => (
+  <div className="relative w-full flex justify-center my-10 animate-in fade-in duration-500 delay-200">
+    <div className="absolute inset-0 bg-blue-50/50 rounded-full blur-3xl opacity-50 scale-125"></div>
+    <div className="relative flex flex-col md:flex-row items-center gap-10 md:gap-4 p-6 bg-white rounded-3xl shadow-lg border border-gray-100 z-10 max-w-xl mx-auto">
+      <img src="https://quenovenza.vercel.app/img/organised-fridge.svg" alt="Refrigerador Organizado" className="w-[120px] h-[120px] md:w-[150px] md:h-[150px]" />
+      <div className="flex flex-col gap-3">
+        <h4 className="text-xl font-black text-gray-900 leading-tight">Tu asistente personal de despensa y botiquín</h4>
+        <p className="text-sm text-gray-500 leading-relaxed">Organiza, controla y recibe notificaciones antes de que sea tarde. Todo en familia.</p>
+        <div className="flex items-center gap-2 mt-1">
+          <Leaf size={16} className="text-green-500" />
+          <Pill size={16} className="text-indigo-500" />
+          <BellRing size={16} className="text-red-500" />
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 const Dashboard = () => {
   // ==========================================
   // ESTADOS PRINCIPALES Y AUTENTICACIÓN
@@ -268,19 +289,21 @@ const Dashboard = () => {
   
   if (!usuarioActual && vista === 'privacidad') {
     return (
-      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12">
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12 font-sans">
         <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
         <div className="max-w-2xl mx-auto bg-white p-8 rounded-[2rem] shadow-xl mt-8">
           <h1 className="text-2xl font-black mb-6 text-gray-900">Política de Privacidad</h1>
           <div className="text-gray-600 space-y-4 text-sm leading-relaxed">
             <p><strong>Última actualización: Abril 2026</strong></p>
             <p>En Que No Venza, nos tomamos muy en serio tu privacidad. Esta política explica cómo recopilamos, usamos y protegemos tu información cuando utilizas nuestra herramienta de gestión de hogar.</p>
-            <h3 className="font-bold text-gray-900">1. Información que recopilamos</h3>
+            <h3 className="font-bold text-gray-900 mt-6 mb-2">1. Información que recopilamos</h3>
             <p>No recopilamos información personal identificable como nombres reales, correos electrónicos o números de teléfono. Solo almacenamos el "Nombre de Hogar" y el "PIN" que tú mismo creas para acceder a tu cuenta privada, además de los datos de los alimentos, medicamentos y lista de compras que ingresas voluntariamente.</p>
-            <h3 className="font-bold text-gray-900">2. Publicidad (Google AdSense)</h3>
+            <h3 className="font-bold text-gray-900 mt-6 mb-2">2. Publicidad (Google AdSense)</h3>
             <p>Utilizamos Google AdSense para mostrar anuncios y mantener este servicio gratuito. Google utiliza cookies para publicar anuncios basados en tus visitas anteriores a nuestra aplicación u otros sitios web de Internet. Puedes inhabilitar la publicidad personalizada visitando la Configuración de anuncios de Google.</p>
-            <h3 className="font-bold text-gray-900">3. Almacenamiento de Datos</h3>
+            <h3 className="font-bold text-gray-900 mt-6 mb-2">3. Almacenamiento de Datos</h3>
             <p>Tus datos de inventario se almacenan de forma segura utilizando los servicios en la nube de Google (Firebase Firestore). No vendemos, alquilamos ni compartimos tus datos de inventario con terceros bajo ninguna circunstancia.</p>
+            <h3 className="font-bold text-gray-900 mt-6 mb-2">4. Uso de Cookies</h3>
+            <p>Utilizamos cookies propias y de terceros para gestionar la sesión, recordar tus preferencias de idioma y analizar el tráfico para mejorar el servicio. Al utilizar la app, aceptas el uso de cookies.</p>
           </div>
         </div>
       </div>
@@ -289,19 +312,21 @@ const Dashboard = () => {
 
   if (!usuarioActual && vista === 'terminos') {
     return (
-      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12">
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12 font-sans">
         <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
         <div className="max-w-2xl mx-auto bg-white p-8 rounded-[2rem] shadow-xl mt-8">
           <h1 className="text-2xl font-black mb-6 text-gray-900">Términos y Condiciones</h1>
           <div className="text-gray-600 space-y-4 text-sm leading-relaxed">
-            <h3 className="font-bold text-gray-900">1. Servicio 100% Gratuito</h3>
+            <h3 className="font-bold text-gray-900 mt-6 mb-2">1. Servicio 100% Gratuito</h3>
             <p>Que No Venza se ofrece de manera completamente gratuita para todos los usuarios. No existen cargos ocultos, versiones premium ni suscripciones. La plataforma se mantiene operativa y en constante mejora gracias a la publicidad mostrada en pantalla.</p>
-            <h3 className="font-bold text-gray-900">2. Aceptación de los Términos</h3>
+            <h3 className="font-bold text-gray-900 mt-6 mb-2">2. Aceptación de los Términos</h3>
             <p>Al acceder y utilizar la plataforma Que No Venza, aceptas estar sujeto a estos Términos y Condiciones en su totalidad. Si no estás de acuerdo con alguna parte, por favor no utilices la aplicación.</p>
-            <h3 className="font-bold text-gray-900">3. Uso de la Aplicación</h3>
+            <h3 className="font-bold text-gray-900 mt-6 mb-2">3. Uso de la Aplicación</h3>
             <p>Que No Venza es una herramienta de organización personal y familiar. Eres el único responsable de mantener la confidencialidad de tu ID de Hogar y PIN para proteger tu información.</p>
-            <h3 className="font-bold text-gray-900">4. Limitación de Responsabilidad Médica y de Salud</h3>
+            <h3 className="font-bold text-gray-900 mt-6 mb-2">4. Limitación de Responsabilidad Médica y de Salud</h3>
             <p>Esta aplicación proporciona cálculos estimativos de fechas de vencimiento y sistemas de alarmas para recordatorios. <strong>No somos un servicio médico.</strong> No nos hacemos responsables por alimentos consumidos en mal estado, intoxicaciones, pérdidas económicas, olvidos de medicación o cualquier problema de salud derivado del uso de la información ingresada. La revisión final del estado real del alimento o el cumplimiento estricto de la dosis es responsabilidad exclusiva del usuario.</p>
+            <h3 className="font-bold text-gray-900 mt-6 mb-2">5. Derechos de Autor</h3>
+            <p>El código, el diseño visual, los gráficos vectoriales y el contenido de este sitio son propiedad de Que No Venza y están protegidos por leyes de propiedad intelectual.</p>
           </div>
         </div>
       </div>
@@ -310,7 +335,7 @@ const Dashboard = () => {
 
   if (!usuarioActual && vista === 'contacto') {
     return (
-      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12">
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12 font-sans">
         <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
         <div className="max-w-md mx-auto w-full mt-10">
           <div className="bg-white p-8 rounded-[2rem] shadow-xl text-center border border-gray-100">
@@ -327,51 +352,90 @@ const Dashboard = () => {
   }
 
   // ==========================================
-  // RENDER PANTALLA LANDING SEO (PARA ADSENSE)
+  // RENDER PANTALLA LANDING SEO DINÁMICA
   // ==========================================
   if (!usuarioActual && vista === 'landing') {
     return (
-      <div className="min-h-screen bg-[#F8F9FB] flex flex-col font-sans">
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col font-sans overflow-x-hidden relative">
+        {/* VECTORES DE FONDO DECORATIVOS */}
+        <div className="absolute top-[100px] left-[-50px] opacity-10 rotate-12 pointer-events-none scale-150"><img src="https://quenovenza.vercel.app/img/floating-fruits.svg" alt="" /></div>
+        <div className="absolute bottom-[200px] right-[-100px] opacity-10 -rotate-12 pointer-events-none scale-200"><img src="https://quenovenza.vercel.app/img/floating-pills.svg" alt="" /></div>
+
         <header className="p-6 bg-white shadow-sm flex justify-between items-center sticky top-0 z-50">
           <h1 className="text-2xl font-black italic text-gray-900">quenovenza</h1>
           <button onClick={() => { setVista('login'); setModoLogin('entrar'); }} className="text-blue-600 font-bold text-[11px] uppercase tracking-wider bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors">Entrar</button>
         </header>
 
-        <main className="flex-1 p-6 max-w-2xl mx-auto w-full">
+        <main className="flex-1 p-6 max-w-2xl mx-auto w-full relative z-10">
           <div className="text-center mt-8 mb-10">
-            <div className="inline-block bg-green-100 text-green-700 font-black px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest mb-4 shadow-sm">Herramienta 100% Gratuita</div>
-            <h2 className="text-4xl font-black tracking-tight text-gray-900 leading-tight mb-4">Evita el desperdicio alimentario y <span className="text-blue-600">ahorra dinero</span> en tu hogar.</h2>
-            <p className="text-gray-600 font-medium text-lg leading-relaxed">Que No Venza es la plataforma definitiva para organizar tu refrigerador, despensa y botiquín médico. Controla fechas de caducidad y recibe notificaciones de salud.</p>
+            <div className="inline-block bg-green-100 text-green-700 font-black px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest mb-4 shadow-sm animate-in zoom-in-50 duration-300 delay-100">Herramienta 100% Gratuita</div>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-gray-900 leading-[1] mb-6 animate-in slide-in-from-top-10 duration-500">Organiza tu Hogar <br/> y <span className="text-blue-600 relative">Ahorra Dinero <span className="absolute bottom-[-10px] left-0 right-0 h-[4px] bg-blue-100 rounded-full"></span></span>.</h2>
+            <p className="text-gray-600 font-medium text-lg md:text-xl leading-relaxed max-w-lg mx-auto animate-in fade-in duration-500 delay-150">Que No Venza es la plataforma definitiva para gestionar las fechas de caducidad en tu refrigerador, despensa y botiquín familiar.</p>
           </div>
+
+          {/* ILUSTRACIÓN HERO DE VECTORES DINÁMICOS */}
+          <HeroIllustration />
 
           <AdSenseBanner adSlot="PON_TU_SLOT_AQUI_1" />
 
-          {/* SECCIÓN SEO PARA ADSENSE: TEXTO DE ALTO VALOR */}
-          <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mb-10">
-            <h3 className="text-2xl font-black text-gray-900 mb-4">¿Por qué es crucial organizar tu despensa?</h3>
-            <p className="text-gray-600 leading-relaxed mb-4">El desperdicio de comida es uno de los problemas económicos y ambientales más silenciosos en los hogares modernos. Según estudios recientes, una familia promedio tira a la basura cientos de dólares anuales simplemente por olvidar lo que hay al fondo del refrigerador. <strong>Que No Venza</strong> actúa como tu asistente personal, utilizando un sistema de semáforo visual para advertirte qué alimentos requieren tu atención inmediata.</p>
-            <p className="text-gray-600 leading-relaxed mb-4">Además de la comida, la correcta administración de medicamentos es fundamental para la salud. Consumir remedios caducados o saltarse las dosis recetadas retrasa las recuperaciones. Nuestra plataforma incorpora una sección dedicada al botiquín familiar, permitiéndote no solo registrar las fechas límite de uso, sino también configurar <strong>alarmas y notificaciones push</strong> que te avisarán en tiempo real cuándo debes tomar tus tratamientos o los de tus seres queridos.</p>
-            <h4 className="text-xl font-bold text-gray-800 mt-6 mb-3">Beneficios clave de nuestra plataforma:</h4>
-            <ul className="list-disc pl-5 text-gray-600 space-y-2 mb-4">
-              <li><strong>Control visual rápido:</strong> Identifica al instante qué productos están próximos a vencer mediante etiquetas de colores.</li>
-              <li><strong>Listas de compras dinámicas:</strong> Añade productos faltantes a tu lista de supermercado con un solo toque.</li>
-              <li><strong>Recordatorios médicos precisos:</strong> Establece frecuencias horarias y recibe alertas para nunca olvidar una pastilla.</li>
-              <li><strong>Privacidad garantizada:</strong> No solicitamos correos electrónicos, números de teléfono ni datos personales sensibles. Funciona con un ID familiar seguro y encriptado.</li>
-            </ul>
+          {/* SECCIÓN SEO DINÁMICA CON VECTORES (PARA ADSENSE) */}
+          <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-xl border border-gray-100 mb-10 relative overflow-hidden">
+             <div className="absolute top-[-20px] right-[-20px] opacity-10 pointer-events-none"><img src="https://quenovenza.vercel.app/img/blob-blue.svg" alt="" className="scale-150" /></div>
+            
+            <div className="flex flex-col md:flex-row gap-10 items-center mb-10">
+              <img src="https://quenovenza.vercel.app/img/organised-milk.svg" alt="Leche Organizada" className="w-[150px] h-[150px] rotate-[-5deg]" />
+              <div className="flex-1">
+                <h3 className="text-2xl font-black text-gray-900 mb-4 leading-tight">¿Por qué es crucial organizar tu despensa?</h3>
+                <p className="text-gray-600 leading-relaxed text-sm">El desperdicio de comida es uno de los problemas económicos y ambientales más silenciosos en los hogares modernos. Según estudios recientes, una familia promedio tira a la basura cientos de dólares anuales simplemente por olvidar lo que hay al fondo del refrigerador. <strong>Que No Venza</strong> actúa como tu asistente personal, utilizando un sistema de semáforo visual para advertirte qué alimentos requieren tu atención inmediata, ayudándote a planificar tus comidas.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse md:flex-row gap-10 items-center">
+              <div className="flex-1">
+                <h3 className="text-2xl font-black text-gray-900 mb-4 leading-tight">Botiquín Digital y Alertas de Salud</h3>
+                <p className="text-gray-600 leading-relaxed text-sm">Además de la comida, la correcta administración de medicamentos es fundamental para la salud de tu familia. Consumir remedios caducados o saltarse las dosis recetadas retrasa las recuperaciones. Nuestra plataforma incorpora una sección dedicada al botiquín familiar, permitiéndote no solo registrar las fechas límite de uso, sino también configurar <strong>alarmas y notificaciones push</strong> reales que te avisarán en tiempo real cuándo debes tomar tus tratamientos.</p>
+              </div>
+              <img src="https://quenovenza.vercel.app/img/health-notification.svg" alt="Notificación de Salud" className="w-[150px] h-[150px] rotate-[5deg]" />
+            </div>
+
+            <h4 className="text-xl font-bold text-gray-800 mt-12 mb-6 text-center">Nuestra plataforma dinámica te ofrece:</h4>
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+              {[
+                {icon: Leaf, color: 'green', title: 'Control Visual', text: 'Identifica rápido qué productos vencen mediante colores.'},
+                {icon: DollarSign, color: 'blue', title: 'Ahorro Real', text: 'Evita compras duplicadas planificando tu inventario.'},
+                {icon: BellRing, color: 'red', title: 'Alertas Médicas', text: 'Establece frecuencias horarias y recibe notificaciones.'},
+                {icon: ShieldCheck, color: 'indigo', title: 'Privacidad Total', text: 'Funciona con un ID familiar seguro, sin datos personales.'},
+              ].map((item, i) => (
+                <div key={i} className={`bg-${item.color}-50 p-6 rounded-2xl flex items-start gap-4 border border-${item.color}-100`}>
+                  <div className={`bg-white text-${item.color}-600 p-3 rounded-xl shadow-sm h-fit`}><item.icon size={22} /></div>
+                  <div>
+                    <h5 className="font-bold text-gray-900">{item.title}</h5>
+                    <p className="text-xs text-gray-600 mt-1 leading-relaxed">{item.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <button onClick={() => { setVista('login'); setModoLogin('crear'); }} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm flex justify-center items-center gap-2 mb-10 transition-transform">Crear Hogar Gratis <ArrowRight size={18} /></button>
+          <button onClick={() => { setVista('login'); setModoLogin('crear'); }} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm flex justify-center items-center gap-3 mb-10 transition-transform">
+             <QrCode size={22}/>
+            <span>Crear Hogar Gratis</span> 
+            <ArrowRight size={18} />
+          </button>
         </main>
         
-        <footer className="bg-gray-100 p-8 text-center text-xs text-gray-500 font-medium mt-auto">
-          <div className="max-w-2xl mx-auto">
-            <p className="mb-4">© 2026 Que No Venza. Una solución para la gestión inteligente del hogar.</p>
-            <div className="flex justify-center gap-4 flex-wrap mb-6">
-              <button onClick={() => setVista('privacidad')} className="hover:text-gray-900 transition-colors">Política de Privacidad</button>
-              <button onClick={() => setVista('terminos')} className="hover:text-gray-900 transition-colors">Términos y Condiciones</button>
-              <button onClick={() => setVista('contacto')} className="hover:text-gray-900 transition-colors">Contacto</button>
+        <footer className="bg-gray-100 p-8 md:p-12 text-center text-xs text-gray-500 font-medium mt-auto relative z-10 border-t border-gray-200">
+          <div className="max-w-2xl mx-auto flex flex-col items-center">
+            <h1 className="text-xl font-black italic text-gray-800 mb-6">quenovenza</h1>
+            <p className="mb-4">© 2026 Que No Venza. Una solución familiar para la gestión inteligente del hogar.</p>
+            <div className="flex justify-center gap-x-6 gap-y-2 flex-wrap mb-6 text-[11px] font-bold uppercase tracking-wider text-gray-600">
+              <button onClick={() => setVista('privacidad')} className="hover:text-blue-600 transition-colors">Política de Privacidad</button>
+              <div className="w-1 h-1 bg-gray-300 rounded-full mt-2.5"></div>
+              <button onClick={() => setVista('terminos')} className="hover:text-blue-600 transition-colors">Términos y Condiciones</button>
+              <div className="w-1 h-1 bg-gray-300 rounded-full mt-2.5"></div>
+              <button onClick={() => setVista('contacto')} className="hover:text-blue-600 transition-colors">Contacto</button>
             </div>
-            <p className="opacity-70">El propósito de este sitio es ofrecer herramientas de productividad personal. No reemplazamos el consejo médico profesional.</p>
+            <p className="opacity-70 leading-relaxed text-[11px] max-w-lg">El propósito de este sitio es ofrecer herramientas de productividad personal. No reemplazamos el consejo médico profesional.</p>
           </div>
         </footer>
       </div>
@@ -383,7 +447,7 @@ const Dashboard = () => {
   // ==========================================
   if (!usuarioActual && vista === 'login') {
     return (
-      <div className="min-h-screen bg-[#F8F9FB] flex flex-col justify-center items-center px-6 relative">
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col justify-center items-center px-6 relative font-sans">
         <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
         <div className="w-full max-w-sm mt-10">
           <div className="text-center mb-10"><h1 className="text-4xl font-black tracking-tighter text-gray-900 italic">quenovenza</h1><p className="text-blue-600 font-bold text-xs uppercase tracking-widest mt-2">Acceso Seguro</p></div>
@@ -395,12 +459,12 @@ const Dashboard = () => {
             <div className="space-y-4">
               <div><label className="text-[10px] font-black text-gray-400 uppercase ml-2"><Home size={12} className="inline mr-1"/> Nombre del Hogar</label><input type="text" placeholder="Ej: FamiliaRojas" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold text-gray-800" value={inputId} onChange={(e) => setInputId(e.target.value.replace(/\s+/g, ''))} /></div>
               <div><label className="text-[10px] font-black text-gray-400 uppercase ml-2"><Lock size={12} className="inline mr-1"/> PIN (4 números)</label><input type="password" inputMode="numeric" maxLength={4} placeholder="****" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-black text-2xl text-center tracking-[0.5em] text-gray-800" value={inputPin} onChange={(e) => setInputPin(e.target.value.replace(/\D/g, ''))} /></div>
-              {errorAuth && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center">{errorAuth}</div>}
-              <button disabled={cargandoAuth} onClick={manejarAcceso} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl uppercase text-sm mt-4">{cargandoAuth ? 'Conectando...' : (modoLogin === 'crear' ? 'Abrir Hogar 🚀' : 'Entrar ✅')}</button>
+              {errorAuth && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center border border-red-100animate-in fade-in">{errorAuth}</div>}
+              <button disabled={cargandoAuth} onClick={manejarAcceso} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl uppercase text-sm mt-4 active:scale-95 transition-transform">{cargandoAuth ? 'Conectando...' : (modoLogin === 'crear' ? 'Abrir Hogar 🚀' : 'Entrar ✅')}</button>
             </div>
             <div className="mt-8 pt-6 border-t border-gray-100">
               <p className="text-center text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">O entrar con invitación</p>
-              <button onClick={() => setMostrarScannerLogin(true)} className="w-full bg-white border-2 border-dashed border-gray-300 text-gray-600 font-black p-4 rounded-2xl flex justify-center items-center gap-2 hover:bg-gray-50"><QrCode size={20} /> Escanear QR</button>
+              <button onClick={() => setMostrarScannerLogin(true)} className="w-full bg-white border-2 border-dashed border-gray-300 text-gray-600 font-black p-4 rounded-2xl flex justify-center items-center gap-2 hover:bg-gray-50 active:scale-95 transition-all"><QrCode size={20} /> Escanear QR</button>
             </div>
           </div>
         </div>
@@ -432,7 +496,7 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <main className="flex-1 px-6 mt-2">
+      <main className="flex-1 px-6 mt-2 relative z-10">
         {/* TAB 1: COMIDA */}
         {tabActivo === 'comida' && (
           <div className="animate-in fade-in duration-300">
@@ -447,7 +511,7 @@ const Dashboard = () => {
               {productos.sort((a,b) => new Date(a.fecha) - new Date(b.fecha)).map((p) => {
                 const dias = calcularDias(p.fecha); const est = obtenerEstado(dias);
                 return (
-                  <div key={p.id} className={`p-5 rounded-[1.5rem] border-2 flex items-center justify-between shadow-sm ${est.bg} ${est.border}`}>
+                  <div key={p.id} className={`p-5 rounded-[1.5rem] border-2 flex items-center justify-between shadow-sm transition-all ${est.bg} ${est.border}`}>
                     <div className="flex-1 pr-2">
                       <div className="flex items-center gap-1.5 mb-1"><span className="text-[10px]">{est.icono}</span><span className={`text-[9px] font-black uppercase tracking-widest ${est.text}`}>{est.titulo}</span></div>
                       <h3 className={`font-black text-[16px] leading-tight ${dias < 0 ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{p.nombre}</h3>
@@ -489,7 +553,7 @@ const Dashboard = () => {
                 const alarmaSonando = checkAlarmaVisual(m);
                 
                 return (
-                  <div key={m.id} className={`p-5 rounded-[1.5rem] border-2 flex flex-col justify-between shadow-sm transition-colors ${alarmaSonando ? 'bg-red-100 border-red-300' : est.bg + ' ' + est.border}`}>
+                  <div key={m.id} className={`p-5 rounded-[1.5rem] border-2 flex flex-col justify-between shadow-sm transition-colors ${alarmaSonando ? 'bg-red-100 border-red-300 shadow-xl' : est.bg + ' ' + est.border}`}>
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <div className="flex items-center gap-1.5 mb-1"><span className="text-[10px]">{est.icono}</span><span className={`text-[9px] font-black uppercase tracking-widest ${est.text}`}>{est.titulo}</span></div>
