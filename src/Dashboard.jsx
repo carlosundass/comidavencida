@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, X, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing, Bell, Search, BookOpen, ThumbsUp, AlertTriangle, Menu } from 'lucide-react';
+import { Trash2, X, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing, Bell, Search, BookOpen, ThumbsUp, AlertTriangle, Menu, Infinity } from 'lucide-react';
 import Scanner from './Scanner';
 // IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
@@ -128,8 +128,9 @@ const Dashboard = () => {
   const [editandoId, setEditandoId] = useState(null);
   const [alarmasEnviadas, setAlarmasEnviadas] = useState(new Set());
   
+  // MODIFICADO: Se añade 'sinFecha' al estado del formulario
   const [nuevoItem, setNuevoItem] = useState({ 
-    tipo: 'alimento', nombre: '', fecha: '', dosis: '', frecuencia: '8', horaInicio: '08:00', duracion: '7', esSiempre: false
+    tipo: 'alimento', nombre: '', fecha: '', sinFecha: false, dosis: '', frecuencia: '8', horaInicio: '08:00', duracion: '7', esSiempre: false
   });
 
   useEffect(() => {
@@ -185,10 +186,11 @@ const Dashboard = () => {
   const abrirFormulario = (itemToEdit = null, tipoPredefinido = 'alimento') => {
     if (itemToEdit) {
       setEditandoId(itemToEdit.id);
-      setNuevoItem({ tipo: tipoPredefinido, nombre: itemToEdit.nombre || '', fecha: itemToEdit.fecha || '', dosis: itemToEdit.dosis || '', frecuencia: itemToEdit.frecuencia || '8', horaInicio: itemToEdit.horaInicio || '08:00', duracion: itemToEdit.duracion || '7', esSiempre: itemToEdit.esSiempre || false });
+      // MODIFICADO: Lee la propiedad sinFecha al editar
+      setNuevoItem({ tipo: tipoPredefinido, nombre: itemToEdit.nombre || '', fecha: itemToEdit.fecha || '', sinFecha: itemToEdit.sinFecha || false, dosis: itemToEdit.dosis || '', frecuencia: itemToEdit.frecuencia || '8', horaInicio: itemToEdit.horaInicio || '08:00', duracion: itemToEdit.duracion || '7', esSiempre: itemToEdit.esSiempre || false });
     } else {
       setEditandoId(null);
-      setNuevoItem({ tipo: tipoPredefinido, nombre: '', fecha: '', dosis: '', frecuencia: '8', horaInicio: '08:00', duracion: '7', esSiempre: false });
+      setNuevoItem({ tipo: tipoPredefinido, nombre: '', fecha: '', sinFecha: false, dosis: '', frecuencia: '8', horaInicio: '08:00', duracion: '7', esSiempre: false });
     }
     setMostrarForm(true);
   };
@@ -196,7 +198,13 @@ const Dashboard = () => {
   const agregarOEditarItem = async () => {
     if (!nuevoItem.nombre) return;
     const coleccionDestino = nuevoItem.tipo === 'alimento' ? 'items' : 'medicamentos';
-    const datos = { nombre: nuevoItem.nombre, fecha: nuevoItem.fecha || '', actualizadoEn: new Date().getTime() };
+    // MODIFICADO: Guarda sinFecha y borra la fecha si aplica
+    const datos = { 
+      nombre: nuevoItem.nombre, 
+      fecha: nuevoItem.sinFecha ? '' : nuevoItem.fecha, 
+      sinFecha: nuevoItem.sinFecha,
+      actualizadoEn: new Date().getTime() 
+    };
     if (nuevoItem.tipo === 'medicamento') {
       datos.dosis = nuevoItem.dosis || ''; datos.frecuencia = nuevoItem.frecuencia; datos.horaInicio = nuevoItem.horaInicio; datos.duracion = nuevoItem.duracion; datos.esSiempre = nuevoItem.esSiempre;
       if (!editandoId) datos.ultimaToma = null; 
@@ -220,7 +228,11 @@ const Dashboard = () => {
   const toggleCompra = async (item) => { await updateDoc(doc(db, 'despensas', usuarioActual.id, 'compras', item.id), { comprado: !item.comprado }); };
 
   const calcularDias = (f) => { if (!f) return 999; return Math.ceil((new Date(f) - new Date()) / (1000 * 60 * 60 * 24)); };
-  const obtenerEstado = (dias) => {
+  
+  // MODIFICADO: Agrega el estado visual "INSUMO" si no tiene fecha
+  const obtenerEstado = (item) => {
+    if (item.sinFecha) return { titulo: 'INSUMO', bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-600', icono: '📦' };
+    const dias = calcularDias(item.fecha);
     if (dias < 0) return { titulo: 'VENCIDO', bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-500', icono: '💀' };
     if (dias <= 3) return { titulo: '¡URGENTE!', bg: 'bg-[#FFEBEE]', border: 'border-[#FFCDD2]', text: 'text-red-700', icono: '🔴' };
     if (dias <= 7) return { titulo: 'PLANIFICA', bg: 'bg-[#FFF3E0]', border: 'border-[#FFE0B2]', text: 'text-orange-700', icono: '🟠' };
@@ -413,7 +425,7 @@ const Dashboard = () => {
       </header>
 
       <main className="flex-1 px-6 mt-2 relative z-10">
-        {/* BUSCADOR INTELIGENTE (Visible en Comida y Medicamentos) */}
+        {/* BUSCADOR INTELIGENTE */}
         {(tabActivo === 'comida' || tabActivo === 'medicamentos') && (
           <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 mb-6 animate-in slide-in-from-top-4">
              <Search size={18} className="text-gray-400 ml-1" />
@@ -434,18 +446,21 @@ const Dashboard = () => {
             )}
             <div className="space-y-3">
               {productosFiltrados.sort((a,b) => new Date(a.fecha) - new Date(b.fecha)).map((p) => {
-                const dias = calcularDias(p.fecha); const est = obtenerEstado(dias);
+                const est = obtenerEstado(p);
+                const dias = p.sinFecha ? null : calcularDias(p.fecha);
                 return (
                   <div key={p.id} className={`p-5 rounded-[1.5rem] border-2 flex items-center justify-between shadow-sm transition-all ${est.bg} ${est.border}`}>
                     <div className="flex-1 pr-2">
                       <div className="flex items-center gap-1.5 mb-1"><span className="text-[10px]">{est.icono}</span><span className={`text-[9px] font-black uppercase tracking-widest ${est.text}`}>{est.titulo}</span></div>
-                      <h3 className={`font-black text-[16px] leading-tight ${dias < 0 ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{p.nombre}</h3>
-                      <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">Vence: {p.fecha.split('-').reverse().join('/')}</p>
+                      <h3 className={`font-black text-[16px] leading-tight ${!p.sinFecha && dias < 0 ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{p.nombre}</h3>
+                      <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">{p.sinFecha ? 'Permanente' : `Vence: ${p.fecha.split('-').reverse().join('/')}`}</p>
                     </div>
                     <div className="flex items-center gap-1 pl-3 border-l border-black/10">
                       <div className="text-center min-w-[3rem] mr-1">
-                        <span className={`block text-2xl font-black leading-none ${est.text}`}>{Math.abs(dias)}</span>
-                        <span className={`text-[8px] font-black uppercase tracking-widest opacity-50`}>días</span>
+                        {p.sinFecha ? <Infinity size={24} className="mx-auto text-gray-400" /> : <>
+                          <span className={`block text-2xl font-black leading-none ${est.text}`}>{Math.abs(dias)}</span>
+                          <span className={`text-[8px] font-black uppercase tracking-widest opacity-50`}>días</span>
+                        </>}
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <button onClick={() => abrirFormulario(p, 'alimento')} className="text-gray-400 hover:text-blue-500 p-1.5 bg-white rounded-full shadow-sm"><Edit2 size={12} /></button>
@@ -457,7 +472,7 @@ const Dashboard = () => {
                 );
               })}
             </div>
-            <AdSenseBanner adSlot="PON_TU_SLOT_AQUI_3" />
+            <AdSenseBanner adSlot="PON_TU_SLOT_AQUI_2" />
           </div>
         )}
 
@@ -473,17 +488,17 @@ const Dashboard = () => {
             )}
             <div className="space-y-3">
               {medicamentosFiltrados.sort((a,b) => new Date(a.fecha || '2099-01-01') - new Date(b.fecha || '2099-01-01')).map((m) => {
-                const dias = m.fecha ? calcularDias(m.fecha) : 999;
-                const est = m.fecha ? obtenerEstado(dias) : { bg: 'bg-white', border: 'border-gray-200', text: 'text-gray-700', titulo: 'ACTIVO', icono: '💊' };
-                const alarmaSonando = checkAlarmaVisual(m);
+                const est = obtenerEstado(m);
+                const dias = m.sinFecha ? null : calcularDias(m.fecha);
+                const alarmaSonando = !m.sinFecha && checkAlarmaVisual(m);
                 
                 return (
                   <div key={m.id} className={`p-5 rounded-[1.5rem] border-2 flex flex-col justify-between shadow-sm transition-colors ${alarmaSonando ? 'bg-red-100 border-red-300 shadow-xl' : est.bg + ' ' + est.border}`}>
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <div className="flex items-center gap-1.5 mb-1"><span className="text-[10px]">{est.icono}</span><span className={`text-[9px] font-black uppercase tracking-widest ${est.text}`}>{est.titulo}</span></div>
-                        <h3 className={`font-black text-[16px] leading-tight ${dias < 0 ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{m.nombre}</h3>
-                        {m.fecha && <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">Vence: {m.fecha.split('-').reverse().join('/')}</p>}
+                        <h3 className={`font-black text-[16px] leading-tight ${!m.sinFecha && dias < 0 ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{m.nombre}</h3>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">{m.sinFecha ? 'Permanente' : (m.fecha ? `Vence: ${m.fecha.split('-').reverse().join('/')}` : 'Sin fecha set.')}</p>
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <button onClick={() => abrirFormulario(m, 'medicamento')} className="text-gray-400 hover:text-blue-500 p-1.5 bg-white rounded-full shadow-sm"><Edit2 size={14} /></button>
@@ -491,7 +506,7 @@ const Dashboard = () => {
                       </div>
                     </div>
                     
-                    {m.frecuencia !== 'Sin Alarma' && (
+                    {!m.sinFecha && m.frecuencia !== 'Sin Alarma' && (
                       <div className={`p-3 rounded-xl border flex items-center justify-between ${alarmaSonando ? 'bg-red-500 border-red-600 shadow-md' : 'bg-white/60 border-white'}`}>
                         <div className="flex items-center gap-3">
                           <Clock size={16} className={alarmaSonando ? 'text-white' : 'text-indigo-500'} />
@@ -513,7 +528,7 @@ const Dashboard = () => {
                 );
               })}
             </div>
-            <AdSenseBanner adSlot="PON_TU_SLOT_AQUI_4" />
+            <AdSenseBanner adSlot="PON_TU_SLOT_AQUI_3" />
           </div>
         )}
 
@@ -570,7 +585,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* BOTÓN FLOTANTE GENERAL (Oculto en tab compras) */}
+      {/* BOTÓN FLOTANTE GENERAL */}
       {tabActivo !== 'compras' && (
         <div className="fixed bottom-[80px] left-0 right-0 p-6 flex flex-col gap-3 pointer-events-none z-30">
           <div className="pointer-events-auto flex justify-end">
@@ -619,86 +634,51 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* FORMULARIO DINÁMICO */}
+      {/* FORMULARIO DINÁMICO (CREAR / EDITAR) */}
       {mostrarForm && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMostrarForm(false)}></div>
           <div className="bg-white w-full max-w-md rounded-t-[2.5rem] p-8 pb-12 shadow-2xl relative z-10 animate-in slide-in-from-bottom duration-300">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-black text-gray-900 italic">{editandoId ? 'Editar Elemento' : 'Añadir al Hogar'}</h2>
-              <button onClick={() => setMostrarForm(false)} className="bg-gray-100 p-2 rounded-full hover:bg-gray-200 transition-colors"><X size={18}/></button>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black italic">{editandoId ? 'Editar Elemento' : 'Añadir al Hogar'}</h2>
+              <button onClick={() => setMostrarForm(false)} className="bg-gray-100 p-2 rounded-full"><X size={18}/></button>
             </div>
             
             {!editandoId && (
               <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
-                <button onClick={() => setNuevoItem({...nuevoItem, tipo: 'alimento'})} className={`flex-1 py-2 text-[11px] uppercase tracking-widest font-black rounded-lg transition-all ${nuevoItem.tipo === 'alimento' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Comida</button>
-                <button onClick={() => setNuevoItem({...nuevoItem, tipo: 'medicamento'})} className={`flex-1 py-2 text-[11px] uppercase tracking-widest font-black rounded-lg transition-all ${nuevoItem.tipo === 'medicamento' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-400'}`}>Medicamento</button>
+                <button onClick={() => setNuevoItem({...nuevoItem, tipo: 'alimento'})} className={`flex-1 py-2 text-[11px] font-black rounded-lg ${nuevoItem.tipo === 'alimento' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}>COMIDA</button>
+                <button onClick={() => setNuevoItem({...nuevoItem, tipo: 'medicamento'})} className={`flex-1 py-2 text-[11px] font-black rounded-lg ${nuevoItem.tipo === 'medicamento' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>BOTIQUÍN</button>
               </div>
             )}
 
             <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Tag size={12} /> Nombre</label>
-                <input type="text" placeholder={nuevoItem.tipo === 'alimento' ? "Ej: Leche" : "Ej: Paracetamol"} className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-gray-800 text-lg transition-all" value={nuevoItem.nombre} onChange={(e) => setNuevoItem({...nuevoItem, nombre: e.target.value})} />
+              <input type="text" placeholder="Nombre (vendas, leche...)" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold" value={nuevoItem.nombre} onChange={(e) => setNuevoItem({...nuevoItem, nombre: e.target.value})} />
+              
+              <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-2xl border-2 border-transparent">
+                 <input type="checkbox" id="noVence" checked={nuevoItem.sinFecha} onChange={(e) => setNuevoItem({...nuevoItem, sinFecha: e.target.checked})} className="w-5 h-5 accent-blue-600" />
+                 <label htmlFor="noVence" className="text-sm font-bold text-gray-700 cursor-pointer flex items-center gap-2">No tiene fecha de vencimiento <Infinity size={16} className="text-gray-400"/></label>
               </div>
 
-              {nuevoItem.tipo === 'alimento' ? (
-                <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Calendar size={12} /> Vencimiento</label>
-                  <input type="date" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-gray-800 text-sm uppercase transition-all" value={nuevoItem.fecha} onChange={(e) => setNuevoItem({...nuevoItem, fecha: e.target.value})} />
+              {!nuevoItem.sinFecha && (
+                <div className="animate-in slide-in-from-top-1">
+                   <label className="text-[10px] font-black text-gray-400 uppercase ml-2 mb-1 block">Vencimiento</label>
+                   <input type="date" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl font-bold uppercase" value={nuevoItem.fecha} onChange={(e) => setNuevoItem({...nuevoItem, fecha: e.target.value})} />
                 </div>
-              ) : (
-                <>
-                  <div className="flex gap-4">
-                    <div className="flex-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1 mb-1"><Calendar size={12} /> Vence (Opc)</label>
-                      <input type="date" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-indigo-200 rounded-2xl outline-none font-bold text-gray-800 text-sm uppercase transition-all" value={nuevoItem.fecha} onChange={(e) => setNuevoItem({...nuevoItem, fecha: e.target.value})} />
-                    </div>
-                    <div className="flex-1">
-                      <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-2 mb-1 block">Dosis</label>
-                      <input type="text" placeholder="Ej: 1 pastilla" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-indigo-200 rounded-2xl outline-none font-bold text-gray-800 text-sm transition-all" value={nuevoItem.dosis} onChange={(e) => setNuevoItem({...nuevoItem, dosis: e.target.value})} />
-                    </div>
-                  </div>
-
-                  <div className="animate-in fade-in bg-indigo-50 p-4 rounded-2xl border border-indigo-100 space-y-3 mt-2">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Clock size={16} className="text-indigo-500" />
-                      <span className="text-[11px] font-black text-indigo-800 uppercase tracking-widest">Plan de Tratamiento</span>
-                    </div>
-                    
-                    <div className="flex gap-4">
-                      <div className="flex-1">
-                        <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-2 mb-1 block">Cada (Hrs)</label>
-                        <select className="w-full p-3 bg-white border-2 border-transparent focus:border-indigo-200 rounded-xl outline-none font-bold text-gray-800 text-sm" value={nuevoItem.frecuencia} onChange={(e) => setNuevoItem({...nuevoItem, frecuencia: e.target.value})}>
-                          <option value="Sin Alarma">Sin Alarma</option>
-                          <option value="4">Cada 4 horas</option>
-                          <option value="6">Cada 6 horas</option>
-                          <option value="8">Cada 8 horas</option>
-                          <option value="12">Cada 12 horas</option>
-                          <option value="24">Cada 24 horas</option>
-                        </select>
-                      </div>
-                      <div className="flex-1">
-                        <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-2 mb-1 block">Hora Inicio</label>
-                        <input type="time" disabled={nuevoItem.frecuencia === 'Sin Alarma'} className="w-full p-3 bg-white border-2 border-transparent focus:border-indigo-200 rounded-xl outline-none font-bold text-gray-800 text-sm disabled:opacity-50" value={nuevoItem.horaInicio} onChange={(e) => setNuevoItem({...nuevoItem, horaInicio: e.target.value})} />
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-4 pt-1">
-                      <div className="flex-1">
-                        <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-2 mb-1 block">Duración (Días)</label>
-                        <input type="number" disabled={nuevoItem.esSiempre || nuevoItem.frecuencia === 'Sin Alarma'} placeholder="Ej: 7" className="w-full p-3 bg-white border-2 border-transparent focus:border-indigo-200 rounded-xl outline-none font-bold text-gray-800 text-sm disabled:opacity-50" value={nuevoItem.duracion} onChange={(e) => setNuevoItem({...nuevoItem, duracion: e.target.value})} />
-                      </div>
-                      <label className="flex items-center gap-2 font-bold text-xs text-indigo-600 mt-4 cursor-pointer">
-                        <input type="checkbox" disabled={nuevoItem.frecuencia === 'Sin Alarma'} className="w-4 h-4 accent-indigo-600 rounded" checked={nuevoItem.esSiempre} onChange={(e) => setNuevoItem({...nuevoItem, esSiempre: e.target.checked})} /> Siempre
-                      </label>
-                    </div>
-                  </div>
-                </>
               )}
 
-              <button disabled={!nuevoItem.nombre || (nuevoItem.tipo === 'alimento' && !nuevoItem.fecha)} onClick={agregarOEditarItem} className={`w-full text-white font-black p-5 rounded-2xl shadow-xl disabled:opacity-30 active:scale-95 uppercase tracking-widest text-xs mt-4 transition-transform ${nuevoItem.tipo === 'alimento' ? 'bg-gray-900' : 'bg-indigo-600'}`}>
-                {editandoId ? 'Guardar Cambios' : `Guardar en ${nuevoItem.tipo === 'alimento' ? 'Despensa' : 'Botiquín'}`}
+              {nuevoItem.tipo === 'medicamento' && !nuevoItem.sinFecha && (
+                <div className="animate-in fade-in bg-indigo-50 p-4 rounded-2xl border border-indigo-100 space-y-3">
+                   <div className="flex items-center gap-2 mb-1"><Clock size={16} className="text-indigo-500" /><span className="text-[11px] font-black uppercase text-indigo-800 tracking-widest">Plan de Tratamiento</span></div>
+                   <div className="flex gap-4">
+                      <div className="flex-1"><label className="text-[10px] font-black text-indigo-400 uppercase ml-2 mb-1 block">Cada (Hrs)</label><select className="w-full p-3 bg-white rounded-xl font-bold" value={nuevoItem.frecuencia} onChange={(e) => setNuevoItem({...nuevoItem, frecuencia: e.target.value})}><option value="Sin Alarma">Sin Alarma</option><option value="4">4h</option><option value="8">8h</option><option value="12">12h</option><option value="24">24h</option></select></div>
+                      <div className="flex-1"><label className="text-[10px] font-black text-indigo-400 uppercase ml-2 mb-1 block">1ª Toma</label><input type="time" className="w-full p-3 bg-white rounded-xl font-bold" value={nuevoItem.horaInicio} onChange={(e) => setNuevoItem({...nuevoItem, horaInicio: e.target.value})} /></div>
+                   </div>
+                   <div className="flex items-center gap-4"><div className="flex-1"><label className="text-[10px] font-black text-indigo-400 uppercase ml-2 block">Días</label><input type="number" disabled={nuevoItem.esSiempre} className="w-full p-3 bg-white rounded-xl font-bold" value={nuevoItem.duracion} onChange={(e) => setNuevoItem({...nuevoItem, duracion: e.target.value})} /></div><label className="flex items-center gap-2 font-bold text-xs text-indigo-600 mt-4"><input type="checkbox" checked={nuevoItem.esSiempre} onChange={(e) => setNuevoItem({...nuevoItem, esSiempre: e.target.checked})} /> Siempre</label></div>
+                </div>
+              )}
+
+              <button disabled={!nuevoItem.nombre || (!nuevoItem.sinFecha && !nuevoItem.fecha)} onClick={agregarOEditarItem} className={`w-full text-white font-black p-5 rounded-2xl shadow-xl disabled:opacity-30 active:scale-95 transition-all ${nuevoItem.tipo === 'alimento' ? 'bg-gray-900' : 'bg-indigo-600'}`}>
+                {editandoId ? 'Guardar Cambios' : 'Guardar'}
               </button>
             </div>
           </div>
