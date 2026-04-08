@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, X, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing, Bell } from 'lucide-react';
+import { Trash2, X, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing, Bell, Search, BookOpen, ThumbsUp, AlertTriangle } from 'lucide-react';
 import Scanner from './Scanner';
 // IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
@@ -28,20 +28,17 @@ const AdSenseBanner = ({ adSlot }) => {
 };
 
 // ==========================================
-// SECCIÓN DE ILUSTRACIÓN HERO (PURO CSS E ICONOS)
+// ILUSTRACIÓN HERO (PURO CSS E ICONOS)
 // ==========================================
 const HeroIllustration = () => (
   <div className="relative w-full flex justify-center my-10 animate-in fade-in duration-500 delay-200">
     <div className="absolute inset-0 bg-blue-50/50 rounded-full blur-3xl opacity-50 scale-125 pointer-events-none"></div>
     <div className="relative flex flex-col md:flex-row items-center gap-10 md:gap-4 p-6 bg-white rounded-3xl shadow-lg border border-gray-100 z-10 max-w-xl mx-auto">
-      
-      {/* Ilustración de código en vez de imagen */}
       <div className="w-[120px] h-[120px] md:w-[150px] md:h-[150px] bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[2.5rem] flex items-center justify-center shadow-inner relative border-[6px] border-white rotate-3 flex-shrink-0">
         <ShoppingCart size={48} className="text-blue-400 absolute -ml-4 -mt-4 opacity-80" />
         <Pill size={40} className="text-indigo-400 absolute bottom-4 right-6 opacity-80" />
         <BellRing size={32} className="text-red-400 absolute top-5 right-5 animate-bounce shadow-sm rounded-full bg-white p-1" />
       </div>
-
       <div className="flex flex-col gap-3 text-center md:text-left">
         <h4 className="text-xl font-black text-gray-900 leading-tight">Tu asistente personal de despensa y botiquín</h4>
         <p className="text-sm text-gray-500 leading-relaxed">Organiza, controla y recibe notificaciones antes de que sea tarde. Todo en familia.</p>
@@ -77,24 +74,15 @@ const Dashboard = () => {
   const [permisoNotif, setPermisoNotif] = useState('Notification' in window ? Notification.permission : 'denied');
 
   const pedirPermisoNotificaciones = async () => {
-    if (!('Notification' in window)) {
-      alert("Este navegador no soporta notificaciones.");
-      return;
-    }
+    if (!('Notification' in window)) { alert("Este navegador no soporta notificaciones."); return; }
     if (Notification.permission !== 'granted') {
       const permiso = await Notification.requestPermission();
       setPermisoNotif(permiso);
       if (permiso === 'granted') {
-        new Notification("¡Notificaciones activadas!", {
-          body: "Ahora Que No Venza te avisará de tus medicamentos.",
-          icon: "https://cdn-icons-png.flaticon.com/512/883/883407.png"
-        });
+        new Notification("¡Notificaciones activadas!", { body: "Ahora Que No Venza te avisará de tus medicamentos.", icon: "https://cdn-icons-png.flaticon.com/512/883/883407.png" });
       }
     } else {
-       new Notification("Prueba de sonido", {
-          body: "Las notificaciones están funcionando correctamente.",
-          icon: "https://cdn-icons-png.flaticon.com/512/883/883407.png"
-       });
+       new Notification("Prueba de sonido", { body: "Las notificaciones están funcionando correctamente.", icon: "https://cdn-icons-png.flaticon.com/512/883/883407.png" });
     }
   };
 
@@ -108,43 +96,29 @@ const Dashboard = () => {
       const despensaRef = doc(db, 'despensas', idLimpio);
       const despensaSnap = await getDoc(despensaRef);
       if (modoLogin === 'crear') {
-        if (despensaSnap.exists()) {
-          setErrorAuth('Ese nombre de hogar ya existe. Elige otro.');
-        } else {
-          await setDoc(despensaRef, { pin: inputPin, creadaEn: new Date() });
-          iniciarSesion(idLimpio, inputPin);
-        }
+        if (despensaSnap.exists()) { setErrorAuth('Ese nombre de hogar ya existe. Elige otro.'); } 
+        else { await setDoc(despensaRef, { pin: inputPin, creadaEn: new Date() }); iniciarSesion(idLimpio, inputPin); }
       } else {
-        if (!despensaSnap.exists()) {
-          setErrorAuth('No encontramos esta cuenta.');
-        } else if (despensaSnap.data().pin !== inputPin) {
-          setErrorAuth('El PIN es incorrecto.');
-        } else {
-          iniciarSesion(idLimpio, inputPin);
-        }
+        if (!despensaSnap.exists()) { setErrorAuth('No encontramos esta cuenta.'); } 
+        else if (despensaSnap.data().pin !== inputPin) { setErrorAuth('El PIN es incorrecto.'); } 
+        else { iniciarSesion(idLimpio, inputPin); }
       }
-    } catch (error) {
-      setErrorAuth('Error de conexión. Revisa tu internet.');
-    } finally {
-      setCargandoAuth(false);
-    }
+    } catch (error) { setErrorAuth('Error de conexión.'); } finally { setCargandoAuth(false); }
   };
 
   const iniciarSesion = (id, pin) => {
     const dataUsuario = { id, pin };
     setUsuarioActual(dataUsuario);
     localStorage.setItem('cv_usuario_activo', JSON.stringify(dataUsuario));
-    setInputId(''); setInputPin(''); setTabActivo('comida');
+    setInputId(''); setInputPin(''); setTabActivo('comida'); setBusqueda('');
     if ('Notification' in window && Notification.permission === 'default') {
        Notification.requestPermission().then(p => setPermisoNotif(p));
     }
   };
 
   const cerrarSesion = () => {
-    setUsuarioActual(null);
-    localStorage.removeItem('cv_usuario_activo');
-    setProductos([]); setMedicamentos([]); setCompras([]);
-    setVista('landing');
+    setUsuarioActual(null); localStorage.removeItem('cv_usuario_activo');
+    setProductos([]); setMedicamentos([]); setCompras([]); setVista('landing'); setBusqueda('');
   };
 
   const procesarQRLogin = async (codigoQR) => {
@@ -155,19 +129,10 @@ const Dashboard = () => {
       try {
         const despensaRef = doc(db, 'despensas', qrId);
         const despensaSnap = await getDoc(despensaRef);
-        if (!despensaSnap.exists() || despensaSnap.data().pin !== qrPin) {
-          setErrorAuth('El código QR es inválido o el PIN cambió.');
-        } else {
-          iniciarSesion(qrId, qrPin); 
-        }
-      } catch(e) {
-        setErrorAuth('Error al leer el QR.');
-      } finally {
-        setCargandoAuth(false);
-      }
-    } else {
-       setErrorAuth('Ese código QR no es una invitación de Que No Venza.');
-    }
+        if (!despensaSnap.exists() || despensaSnap.data().pin !== qrPin) { setErrorAuth('El código QR es inválido o el PIN cambió.'); } 
+        else { iniciarSesion(qrId, qrPin); }
+      } catch(e) { setErrorAuth('Error al leer el QR.'); } finally { setCargandoAuth(false); }
+    } else { setErrorAuth('Ese código QR no es una invitación de Que No Venza.'); }
   };
 
   // ==========================================
@@ -176,6 +141,10 @@ const Dashboard = () => {
   const [productos, setProductos] = useState([]);
   const [medicamentos, setMedicamentos] = useState([]);
   const [compras, setCompras] = useState([]);
+  
+  // NUEVOS ESTADOS: Buscador y Papelera Inteligente
+  const [busqueda, setBusqueda] = useState('');
+  const [itemABorrar, setItemABorrar] = useState(null); // Para el modal de borrar
   
   const [mostrarForm, setMostrarForm] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
@@ -195,6 +164,7 @@ const Dashboard = () => {
     }
   }, [usuarioActual]);
 
+  // RELOJ ALARMAS
   useEffect(() => {
     if (!usuarioActual || medicamentos.length === 0) return;
     const revisarAlarmas = () => {
@@ -215,48 +185,33 @@ const Dashboard = () => {
           const idNotificacion = `${m.id}-${msProximaToma}`;
           if (!alarmasEnviadas.has(idNotificacion)) {
             if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification('¡Hora de tu medicina!', {
-                body: `Toca: ${m.nombre} (${m.dosis || 'revisa la app'})`,
-                icon: 'https://cdn-icons-png.flaticon.com/512/883/883407.png',
-                vibrate: [200, 100, 200, 100, 200]
-              });
+              new Notification('¡Hora de tu medicina!', { body: `Toca: ${m.nombre} (${m.dosis || 'revisa la app'})`, icon: 'https://cdn-icons-png.flaticon.com/512/883/883407.png', vibrate: [200, 100, 200, 100, 200] });
             }
             setAlarmasEnviadas(prev => new Set(prev).add(idNotificacion));
           }
         }
       });
     };
-    revisarAlarmas();
-    const intervalo = setInterval(revisarAlarmas, 10000);
-    return () => clearInterval(intervalo);
+    revisarAlarmas(); const intervalo = setInterval(revisarAlarmas, 10000); return () => clearInterval(intervalo);
   }, [usuarioActual, medicamentos, alarmasEnviadas]);
 
   const checkAlarmaVisual = (m) => {
     if (!m.frecuencia || m.frecuencia === 'Sin Alarma') return false;
-    const horasFrec = parseInt(m.frecuencia);
-    if (isNaN(horasFrec)) return false;
+    const horasFrec = parseInt(m.frecuencia); if (isNaN(horasFrec)) return false;
     let msProximaToma = 0;
     if (m.ultimaToma) msProximaToma = m.ultimaToma + (horasFrec * 60 * 60 * 1000);
     else if (m.horaInicio) {
-      const [horas, mins] = m.horaInicio.split(':');
-      const d = new Date(); d.setHours(parseInt(horas), parseInt(mins), 0, 0);
-      msProximaToma = d.getTime();
+      const [horas, mins] = m.horaInicio.split(':'); const d = new Date(); d.setHours(parseInt(horas), parseInt(mins), 0, 0); msProximaToma = d.getTime();
     }
     return msProximaToma > 0 && new Date().getTime() >= msProximaToma;
   };
 
-  const registrarToma = async (idMedicamento) => {
-    await updateDoc(doc(db, 'despensas', usuarioActual.id, 'medicamentos', idMedicamento), { ultimaToma: new Date().getTime() });
-  };
+  const registrarToma = async (idMedicamento) => { await updateDoc(doc(db, 'despensas', usuarioActual.id, 'medicamentos', idMedicamento), { ultimaToma: new Date().getTime() }); };
 
   const abrirFormulario = (itemToEdit = null, tipoPredefinido = 'alimento') => {
     if (itemToEdit) {
       setEditandoId(itemToEdit.id);
-      setNuevoItem({
-        tipo: tipoPredefinido, nombre: itemToEdit.nombre || '', fecha: itemToEdit.fecha || '',
-        dosis: itemToEdit.dosis || '', frecuencia: itemToEdit.frecuencia || '8', horaInicio: itemToEdit.horaInicio || '08:00',
-        duracion: itemToEdit.duracion || '7', esSiempre: itemToEdit.esSiempre || false
-      });
+      setNuevoItem({ tipo: tipoPredefinido, nombre: itemToEdit.nombre || '', fecha: itemToEdit.fecha || '', dosis: itemToEdit.dosis || '', frecuencia: itemToEdit.frecuencia || '8', horaInicio: itemToEdit.horaInicio || '08:00', duracion: itemToEdit.duracion || '7', esSiempre: itemToEdit.esSiempre || false });
     } else {
       setEditandoId(null);
       setNuevoItem({ tipo: tipoPredefinido, nombre: '', fecha: '', dosis: '', frecuencia: '8', horaInicio: '08:00', duracion: '7', esSiempre: false });
@@ -269,8 +224,7 @@ const Dashboard = () => {
     const coleccionDestino = nuevoItem.tipo === 'alimento' ? 'items' : 'medicamentos';
     const datos = { nombre: nuevoItem.nombre, fecha: nuevoItem.fecha || '', actualizadoEn: new Date().getTime() };
     if (nuevoItem.tipo === 'medicamento') {
-      datos.dosis = nuevoItem.dosis || ''; datos.frecuencia = nuevoItem.frecuencia; datos.horaInicio = nuevoItem.horaInicio;
-      datos.duracion = nuevoItem.duracion; datos.esSiempre = nuevoItem.esSiempre;
+      datos.dosis = nuevoItem.dosis || ''; datos.frecuencia = nuevoItem.frecuencia; datos.horaInicio = nuevoItem.horaInicio; datos.duracion = nuevoItem.duracion; datos.esSiempre = nuevoItem.esSiempre;
       if (!editandoId) datos.ultimaToma = null; 
     }
     if (editandoId) await updateDoc(doc(db, 'despensas', usuarioActual.id, coleccionDestino, editandoId), datos);
@@ -278,7 +232,24 @@ const Dashboard = () => {
     setMostrarForm(false); setEditandoId(null);
   };
 
-  const borrarItem = async (itemId, coleccion) => { await deleteDoc(doc(db, 'despensas', usuarioActual.id, coleccion, itemId)); };
+  // PAPELERA INTELIGENTE
+  const solicitarBorrado = (item, coleccion, tipo) => {
+    setItemABorrar({ id: item.id, nombre: item.nombre, coleccion, tipo });
+  };
+
+  const confirmarBorradoEstadistica = async (estado) => {
+    if (!itemABorrar) return;
+    // 1. Guardar en historial de estadísticas
+    await addDoc(collection(db, 'despensas', usuarioActual.id, 'historial'), {
+      nombre: itemABorrar.nombre, tipo: itemABorrar.tipo, resultado: estado, fecha: new Date().getTime()
+    });
+    // 2. Borrar original
+    await deleteDoc(doc(db, 'despensas', usuarioActual.id, itemABorrar.coleccion, itemABorrar.id));
+    setItemABorrar(null);
+  };
+
+  const borrarItemDirecto = async (itemId, coleccion) => { await deleteDoc(doc(db, 'despensas', usuarioActual.id, coleccion, itemId)); };
+  
   const agregarACompras = async (nombre) => { await addDoc(collection(db, 'despensas', usuarioActual.id, 'compras'), { nombre, comprado: false, creadoEn: new Date().getTime() }); };
   const toggleCompra = async (item) => { await updateDoc(doc(db, 'despensas', usuarioActual.id, 'compras', item.id), { comprado: !item.comprado }); };
 
@@ -290,28 +261,20 @@ const Dashboard = () => {
     return { titulo: 'TRANQUI', bg: 'bg-[#E8F5E9]', border: 'border-[#C8E6C9]', text: 'text-green-700', icono: '🟢' };
   };
 
+  // FILTRADO DEL BUSCADOR
+  const productosFiltrados = productos.filter(p => p.nombre.toLowerCase().includes(busqueda.toLowerCase()));
+  const medicamentosFiltrados = medicamentos.filter(m => m.nombre.toLowerCase().includes(busqueda.toLowerCase()));
+
   // ==========================================
-  // RENDER PANTALLAS LEGALES COMPLETAS (PARA ADSENSE)
+  // RENDER LEGALES (OMITIDO PARA BREVEDAD, SE MANTIENE IGUAL DE LARGO POR DEBAJO)
   // ==========================================
-  
   if (!usuarioActual && vista === 'privacidad') {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative px-6 py-12 font-sans">
         <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
         <div className="max-w-2xl mx-auto bg-white p-8 rounded-[2rem] shadow-xl mt-8">
           <h1 className="text-2xl font-black mb-6 text-gray-900">Política de Privacidad</h1>
-          <div className="text-gray-600 space-y-4 text-sm leading-relaxed">
-            <p><strong>Última actualización: Abril 2026</strong></p>
-            <p>En Que No Venza, nos tomamos muy en serio tu privacidad. Esta política explica cómo recopilamos, usamos y protegemos tu información cuando utilizas nuestra herramienta de gestión de hogar.</p>
-            <h3 className="font-bold text-gray-900 mt-6 mb-2">1. Información que recopilamos</h3>
-            <p>No recopilamos información personal identificable como nombres reales, correos electrónicos o números de teléfono. Solo almacenamos el "Nombre de Hogar" y el "PIN" que tú mismo creas para acceder a tu cuenta privada, además de los datos de los alimentos, medicamentos y lista de compras que ingresas voluntariamente.</p>
-            <h3 className="font-bold text-gray-900 mt-6 mb-2">2. Publicidad (Google AdSense)</h3>
-            <p>Utilizamos Google AdSense para mostrar anuncios y mantener este servicio gratuito. Google utiliza cookies para publicar anuncios basados en tus visitas anteriores a nuestra aplicación u otros sitios web de Internet. Puedes inhabilitar la publicidad personalizada visitando la Configuración de anuncios de Google.</p>
-            <h3 className="font-bold text-gray-900 mt-6 mb-2">3. Almacenamiento de Datos</h3>
-            <p>Tus datos de inventario se almacenan de forma segura utilizando los servicios en la nube de Google (Firebase Firestore). No vendemos, alquilamos ni compartimos tus datos de inventario con terceros bajo ninguna circunstancia.</p>
-            <h3 className="font-bold text-gray-900 mt-6 mb-2">4. Uso de Cookies</h3>
-            <p>Utilizamos cookies propias y de terceros para gestionar la sesión, recordar tus preferencias de idioma y analizar el tráfico para mejorar el servicio. Al utilizar la app, aceptas el uso de cookies.</p>
-          </div>
+          <div className="text-gray-600 space-y-4 text-sm leading-relaxed"><p><strong>Última actualización: Abril 2026</strong></p><p>En Que No Venza, nos tomamos muy en serio tu privacidad. Esta política explica cómo recopilamos, usamos y protegemos tu información cuando utilizas nuestra herramienta de gestión de hogar.</p><h3 className="font-bold text-gray-900 mt-6 mb-2">1. Información que recopilamos</h3><p>No recopilamos información personal identificable como nombres reales, correos electrónicos o números de teléfono. Solo almacenamos el "Nombre de Hogar" y el "PIN" que tú mismo creas para acceder a tu cuenta privada, además de los datos de los alimentos, medicamentos y lista de compras que ingresas voluntariamente.</p><h3 className="font-bold text-gray-900 mt-6 mb-2">2. Publicidad (Google AdSense)</h3><p>Utilizamos Google AdSense para mostrar anuncios y mantener este servicio gratuito. Google utiliza cookies para publicar anuncios basados en tus visitas anteriores a nuestra aplicación u otros sitios web de Internet. Puedes inhabilitar la publicidad personalizada visitando la Configuración de anuncios de Google.</p><h3 className="font-bold text-gray-900 mt-6 mb-2">3. Almacenamiento de Datos</h3><p>Tus datos de inventario se almacenan de forma segura utilizando los servicios en la nube de Google (Firebase Firestore). No vendemos, alquilamos ni compartimos tus datos de inventario con terceros bajo ninguna circunstancia.</p><h3 className="font-bold text-gray-900 mt-6 mb-2">4. Uso de Cookies</h3><p>Utilizamos cookies propias y de terceros para gestionar la sesión, recordar tus preferencias de idioma y analizar el tráfico para mejorar el servicio. Al utilizar la app, aceptas el uso de cookies.</p></div>
         </div>
       </div>
     );
@@ -323,18 +286,7 @@ const Dashboard = () => {
         <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
         <div className="max-w-2xl mx-auto bg-white p-8 rounded-[2rem] shadow-xl mt-8">
           <h1 className="text-2xl font-black mb-6 text-gray-900">Términos y Condiciones</h1>
-          <div className="text-gray-600 space-y-4 text-sm leading-relaxed">
-            <h3 className="font-bold text-gray-900 mt-6 mb-2">1. Servicio 100% Gratuito</h3>
-            <p>Que No Venza se ofrece de manera completamente gratuita para todos los usuarios. No existen cargos ocultos, versiones premium ni suscripciones. La plataforma se mantiene operativa y en constante mejora gracias a la publicidad mostrada en pantalla.</p>
-            <h3 className="font-bold text-gray-900 mt-6 mb-2">2. Aceptación de los Términos</h3>
-            <p>Al acceder y utilizar la plataforma Que No Venza, aceptas estar sujeto a estos Términos y Condiciones en su totalidad. Si no estás de acuerdo con alguna parte, por favor no utilices la aplicación.</p>
-            <h3 className="font-bold text-gray-900 mt-6 mb-2">3. Uso de la Aplicación</h3>
-            <p>Que No Venza es una herramienta de organización personal y familiar. Eres el único responsable de mantener la confidencialidad de tu ID de Hogar y PIN para proteger tu información.</p>
-            <h3 className="font-bold text-gray-900 mt-6 mb-2">4. Limitación de Responsabilidad Médica y de Salud</h3>
-            <p>Esta aplicación proporciona cálculos estimativos de fechas de vencimiento y sistemas de alarmas para recordatorios. <strong>No somos un servicio médico.</strong> No nos hacemos responsables por alimentos consumidos en mal estado, intoxicaciones, pérdidas económicas, olvidos de medicación o cualquier problema de salud derivado del uso de la información ingresada. La revisión final del estado real del alimento o el cumplimiento estricto de la dosis es responsabilidad exclusiva del usuario.</p>
-            <h3 className="font-bold text-gray-900 mt-6 mb-2">5. Derechos de Autor</h3>
-            <p>El código, el diseño visual, y el contenido de este sitio son propiedad de Que No Venza y están protegidos por leyes de propiedad intelectual.</p>
-          </div>
+          <div className="text-gray-600 space-y-4 text-sm leading-relaxed"><h3 className="font-bold text-gray-900 mt-6 mb-2">1. Servicio 100% Gratuito</h3><p>Que No Venza se ofrece de manera completamente gratuita para todos los usuarios. No existen cargos ocultos, versiones premium ni suscripciones. La plataforma se mantiene operativa y en constante mejora gracias a la publicidad mostrada en pantalla.</p><h3 className="font-bold text-gray-900 mt-6 mb-2">2. Aceptación de los Términos</h3><p>Al acceder y utilizar la plataforma Que No Venza, aceptas estar sujeto a estos Términos y Condiciones en su totalidad. Si no estás de acuerdo con alguna parte, por favor no utilices la aplicación.</p><h3 className="font-bold text-gray-900 mt-6 mb-2">3. Uso de la Aplicación</h3><p>Que No Venza es una herramienta de organización personal y familiar. Eres el único responsable de mantener la confidencialidad de tu ID de Hogar y PIN para proteger tu información.</p><h3 className="font-bold text-gray-900 mt-6 mb-2">4. Limitación de Responsabilidad Médica y de Salud</h3><p>Esta aplicación proporciona cálculos estimativos de fechas de vencimiento y sistemas de alarmas para recordatorios. <strong>No somos un servicio médico.</strong> No nos hacemos responsables por alimentos consumidos en mal estado, intoxicaciones, pérdidas económicas, olvidos de medicación o cualquier problema de salud derivado del uso de la información ingresada. La revisión final del estado real del alimento o el cumplimiento estricto de la dosis es responsabilidad exclusiva del usuario.</p><h3 className="font-bold text-gray-900 mt-6 mb-2">5. Derechos de Autor</h3><p>El código, el diseño visual, y el contenido de este sitio son propiedad de Que No Venza y están protegidos por leyes de propiedad intelectual.</p></div>
         </div>
       </div>
     );
@@ -348,9 +300,7 @@ const Dashboard = () => {
           <div className="bg-white p-8 rounded-[2rem] shadow-xl text-center border border-gray-100">
             <h1 className="text-3xl font-black mb-4 text-gray-900 italic">Contacto</h1>
             <p className="text-gray-500 text-sm mb-8 leading-relaxed">¿Tienes dudas, sugerencias de nuevas funciones o encontraste algún error en la aplicación? ¡Nos encantaría escucharte!</p>
-            <a href="mailto:hola@quenovenza.cl" className="inline-block w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm transition-transform">
-              Enviar un correo
-            </a>
+            <a href="mailto:hola@quenovenza.cl" className="inline-block w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm transition-transform">Enviar un correo</a>
             <p className="mt-6 text-xs text-gray-400">Nuestro equipo te responderá lo antes posible.</p>
           </div>
         </div>
@@ -359,12 +309,11 @@ const Dashboard = () => {
   }
 
   // ==========================================
-  // RENDER PANTALLA LANDING SEO DINÁMICA
+  // RENDER PANTALLA LANDING CON CABALLO DE TROYA SEO
   // ==========================================
   if (!usuarioActual && vista === 'landing') {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col font-sans overflow-x-hidden relative">
-        {/* VECTORES DE FONDO DECORATIVOS (PURO CÓDIGO) */}
         <div className="absolute top-[10%] left-[-5%] opacity-5 pointer-events-none -rotate-12"><Leaf size={250} /></div>
         <div className="absolute bottom-[20%] right-[-10%] opacity-5 pointer-events-none rotate-12"><Pill size={300} /></div>
 
@@ -373,65 +322,46 @@ const Dashboard = () => {
           <button onClick={() => { setVista('login'); setModoLogin('entrar'); }} className="text-blue-600 font-bold text-[11px] uppercase tracking-wider bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors">Entrar</button>
         </header>
 
-        <main className="flex-1 p-6 max-w-2xl mx-auto w-full relative z-10">
+        <main className="flex-1 p-6 max-w-3xl mx-auto w-full relative z-10">
           <div className="text-center mt-8 mb-10">
             <div className="inline-block bg-green-100 text-green-700 font-black px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest mb-4 shadow-sm animate-in zoom-in-50 duration-300 delay-100">Herramienta 100% Gratuita</div>
             <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-gray-900 leading-[1] mb-6 animate-in slide-in-from-top-10 duration-500">Organiza tu Hogar <br/> y <span className="text-blue-600 relative">Ahorra Dinero <span className="absolute bottom-[-10px] left-0 right-0 h-[4px] bg-blue-100 rounded-full"></span></span>.</h2>
             <p className="text-gray-600 font-medium text-lg md:text-xl leading-relaxed max-w-lg mx-auto animate-in fade-in duration-500 delay-150">Que No Venza es la plataforma definitiva para gestionar las fechas de caducidad en tu refrigerador, despensa y botiquín familiar.</p>
           </div>
 
-          {/* ILUSTRACIÓN HERO (CSS E ICONOS NATIVOS) */}
           <HeroIllustration />
-
           <AdSenseBanner adSlot="PON_TU_SLOT_AQUI_1" />
 
-          {/* SECCIÓN SEO DINÁMICA (PARA ADSENSE) */}
+          {/* EL CABALLO DE TROYA PARA ADSENSE: SECCIÓN DE ARTÍCULOS / GUÍAS */}
           <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-xl border border-gray-100 mb-10 relative overflow-hidden">
              <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
-            
-            <div className="flex flex-col md:flex-row gap-10 items-center mb-10">
-              <div className="w-[120px] h-[120px] bg-green-50 rounded-[2rem] flex items-center justify-center rotate-[-5deg] shadow-lg border border-green-100 flex-shrink-0">
-                <Leaf size={60} className="text-green-500" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-2xl font-black text-gray-900 mb-4 leading-tight">¿Por qué es crucial organizar tu despensa?</h3>
-                <p className="text-gray-600 leading-relaxed text-sm">El desperdicio de comida es uno de los problemas económicos y ambientales más silenciosos en los hogares modernos. Según estudios recientes, una familia promedio tira a la basura cientos de dólares anuales simplemente por olvidar lo que hay al fondo del refrigerador. <strong>Que No Venza</strong> actúa como tu asistente personal, utilizando un sistema de semáforo visual para advertirte qué alimentos requieren tu atención inmediata, ayudándote a planificar tus comidas.</p>
-              </div>
-            </div>
+             
+             <h3 className="text-3xl font-black text-gray-900 mb-8 flex items-center gap-3"><BookOpen className="text-blue-500" size={32}/> Guías Prácticas del Hogar</h3>
+             
+             {/* Artículo 1 */}
+             <div className="mb-10 pb-8 border-b border-gray-100">
+               <h4 className="text-2xl font-bold text-gray-800 mb-4 leading-tight">Cómo organizar tu refrigerador para que la comida dure el doble</h4>
+               <p className="text-gray-600 leading-relaxed mb-4">El orden en el que guardas tus alimentos dentro del refrigerador es vital para su conservación. Cada estante tiene una temperatura diferente, y colocar los productos incorrectamente es la causa principal de que se echen a perder antes de tiempo. En las bandejas superiores, donde la temperatura es más constante, debes guardar los alimentos que no necesitan cocinarse, como las sobras, bebidas o comidas preparadas.</p>
+               <p className="text-gray-600 leading-relaxed">Por otro lado, los cajones inferiores están diseñados para mantener la humedad ideal de las frutas y verduras, evitando que se marchiten. Usar una herramienta como <strong>Que No Venza</strong> te permite catalogar estos alimentos y recibir una alerta con nuestro sistema de semáforo antes de que su vida útil termine, reduciendo drásticamente el impacto ambiental y el gasto económico mensual de tu familia.</p>
+             </div>
 
-            <div className="flex flex-col-reverse md:flex-row gap-10 items-center">
-              <div className="flex-1">
-                <h3 className="text-2xl font-black text-gray-900 mb-4 leading-tight">Botiquín Digital y Alertas de Salud</h3>
-                <p className="text-gray-600 leading-relaxed text-sm">Además de la comida, la correcta administración de medicamentos es fundamental para la salud de tu familia. Consumir remedios caducados o saltarse las dosis recetadas retrasa las recuperaciones. Nuestra plataforma incorpora una sección dedicada al botiquín familiar, permitiéndote no solo registrar las fechas límite de uso, sino también configurar <strong>alarmas y notificaciones push</strong> reales que te avisarán en tiempo real cuándo debes tomar tus tratamientos.</p>
-              </div>
-              <div className="w-[120px] h-[120px] bg-indigo-50 rounded-[2rem] flex items-center justify-center rotate-[5deg] shadow-lg border border-indigo-100 flex-shrink-0">
-                <Clock size={60} className="text-indigo-500" />
-              </div>
-            </div>
+             {/* Artículo 2 */}
+             <div className="mb-10 pb-8 border-b border-gray-100">
+               <h4 className="text-2xl font-bold text-gray-800 mb-4 leading-tight">Botiquín Seguro: Lo que necesitas saber sobre la caducidad de los medicamentos</h4>
+               <p className="text-gray-600 leading-relaxed mb-4">Mantener un botiquín médico organizado no es un lujo, es una necesidad para la salud familiar. La caducidad de un medicamento no significa simplemente que deja de ser efectivo; en muchos casos, los compuestos químicos pueden alterarse y volverse perjudiciales o generar efectos secundarios adversos. Es imperativo revisar el estado de los jarabes, pastillas y cremas al menos cada tres meses.</p>
+               <p className="text-gray-600 leading-relaxed">Con nuestra aplicación gratuita, puedes digitalizar todo tu botiquín en minutos. Al registrar la fecha de vencimiento y la dosis recetada, la plataforma se encarga de enviarte <strong>notificaciones push directamente a tu celular</strong>, asegurando que tú y tus seres queridos sigan el plan de tratamiento al pie de la letra y sin riesgos de consumir remedios en mal estado.</p>
+             </div>
 
-            <h4 className="text-xl font-bold text-gray-800 mt-12 mb-6 text-center">Nuestra plataforma te ofrece:</h4>
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-              {[
-                {icon: Leaf, color: 'green', title: 'Control Visual', text: 'Identifica rápido qué productos vencen mediante colores.'},
-                {icon: DollarSign, color: 'blue', title: 'Ahorro Real', text: 'Evita compras duplicadas planificando tu inventario.'},
-                {icon: BellRing, color: 'red', title: 'Alertas Médicas', text: 'Establece frecuencias horarias y recibe notificaciones.'},
-                {icon: ShieldCheck, color: 'indigo', title: 'Privacidad Total', text: 'Funciona con un ID familiar seguro, sin datos personales.'},
-              ].map((item, i) => (
-                <div key={i} className={`bg-${item.color}-50 p-6 rounded-2xl flex items-start gap-4 border border-${item.color}-100`}>
-                  <div className={`bg-white text-${item.color}-600 p-3 rounded-xl shadow-sm h-fit`}><item.icon size={22} /></div>
-                  <div>
-                    <h5 className="font-bold text-gray-900">{item.title}</h5>
-                    <p className="text-xs text-gray-600 mt-1 leading-relaxed">{item.text}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+             {/* Artículo 3 */}
+             <div>
+               <h4 className="text-2xl font-bold text-gray-800 mb-4 leading-tight">El costo oculto del desperdicio de alimentos y cómo evitarlo</h4>
+               <p className="text-gray-600 leading-relaxed mb-4">Según la Organización de las Naciones Unidas para la Agricultura y la Alimentación (FAO), casi un tercio de todos los alimentos producidos a nivel mundial se pierde o se desperdicia. Esto no solo representa un problema ético y ecológico masivo, con millones de toneladas de gases de efecto invernadero emitidos en vano, sino también un agujero silencioso en la economía de tu hogar. Cada vez que botas comida que se pudrió por olvido, estás botando dinero directamente a la basura.</p>
+               <p className="text-gray-600 leading-relaxed">La solución empieza por la planificación y el inventario. Al saber exactamente qué tienes en tu despensa mediante un registro digital como el que ofrece nuestra app, evitas comprar productos duplicados en el supermercado. La clave está en consumir primero lo que está por vencer, creando un ciclo sostenible y económico en tu hogar.</p>
+             </div>
           </div>
 
           <button onClick={() => { setVista('login'); setModoLogin('crear'); }} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm flex justify-center items-center gap-3 mb-10 transition-transform">
-             <QrCode size={22}/>
-            <span>Crear Hogar Gratis</span> 
-            <ArrowRight size={18} />
+             <QrCode size={22}/> <span>Crear Mi Hogar Gratis</span> <ArrowRight size={18} />
           </button>
         </main>
         
@@ -446,7 +376,6 @@ const Dashboard = () => {
               <div className="w-1 h-1 bg-gray-300 rounded-full mt-2.5"></div>
               <button onClick={() => setVista('contacto')} className="hover:text-blue-600 transition-colors">Contacto</button>
             </div>
-            <p className="opacity-70 leading-relaxed text-[11px] max-w-lg">El propósito de este sitio es ofrecer herramientas de productividad personal. No reemplazamos el consejo médico profesional.</p>
           </div>
         </footer>
       </div>
@@ -485,7 +414,7 @@ const Dashboard = () => {
   }
 
   // ==========================================
-  // RENDER: DASHBOARD PRINCIPAL
+  // RENDER: DASHBOARD PRINCIPAL Y LÓGICA DE FILTROS
   // ==========================================
   const qrData = `QNV-LOGIN|${usuarioActual?.id || 'error'}|${usuarioActual?.pin || '0000'}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrData)}`;
@@ -508,18 +437,27 @@ const Dashboard = () => {
       </header>
 
       <main className="flex-1 px-6 mt-2 relative z-10">
+        {/* BUSCADOR INTELIGENTE (Visible en Comida y Medicamentos) */}
+        {(tabActivo === 'comida' || tabActivo === 'medicamentos') && (
+          <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 mb-6 animate-in slide-in-from-top-4">
+             <Search size={18} className="text-gray-400 ml-1" />
+             <input type="text" placeholder={`Buscar en ${tabActivo}...`} value={busqueda} onChange={e => setBusqueda(e.target.value)} className="flex-1 outline-none text-sm font-bold text-gray-700 bg-transparent" />
+             {busqueda && <button onClick={()=>setBusqueda('')} className="bg-gray-100 p-1.5 rounded-full hover:bg-gray-200"><X size={14} className="text-gray-500"/></button>}
+          </div>
+        )}
+
         {/* TAB 1: COMIDA */}
         {tabActivo === 'comida' && (
           <div className="animate-in fade-in duration-300">
             <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Semáforo de Alimentos</h2>
-            {productos.length === 0 && (
+            {productosFiltrados.length === 0 && (
               <div className="py-20 text-center opacity-60 border-2 border-dashed border-gray-200 rounded-[2rem]">
-                <p className="text-gray-500 font-bold text-lg">Todo al día</p>
-                <p className="text-gray-400 text-sm mt-1">Tu despensa está vacía ☁️</p>
+                <p className="text-gray-500 font-bold text-lg">{busqueda ? 'No hay resultados' : 'Todo al día'}</p>
+                <p className="text-gray-400 text-sm mt-1">{busqueda ? 'Prueba con otra palabra' : 'Tu despensa está vacía ☁️'}</p>
               </div>
             )}
             <div className="space-y-3">
-              {productos.sort((a,b) => new Date(a.fecha) - new Date(b.fecha)).map((p) => {
+              {productosFiltrados.sort((a,b) => new Date(a.fecha) - new Date(b.fecha)).map((p) => {
                 const dias = calcularDias(p.fecha); const est = obtenerEstado(dias);
                 return (
                   <div key={p.id} className={`p-5 rounded-[1.5rem] border-2 flex items-center justify-between shadow-sm transition-all ${est.bg} ${est.border}`}>
@@ -536,7 +474,7 @@ const Dashboard = () => {
                       <div className="flex flex-col gap-1.5">
                         <button onClick={() => abrirFormulario(p, 'alimento')} className="text-gray-400 hover:text-blue-500 p-1.5 bg-white rounded-full shadow-sm"><Edit2 size={12} /></button>
                         <button onClick={() => agregarACompras(p.nombre)} className="text-gray-400 hover:text-green-500 p-1.5 bg-white rounded-full shadow-sm" title="Añadir a Compras"><ShoppingCart size={12} /></button>
-                        <button onClick={() => borrarItem(p.id, 'items')} className="text-gray-400 hover:text-red-500 p-1.5 bg-white rounded-full shadow-sm"><Trash2 size={12} /></button>
+                        <button onClick={() => solicitarBorrado(p, 'items', 'alimento')} className="text-gray-400 hover:text-red-500 p-1.5 bg-white rounded-full shadow-sm"><Trash2 size={12} /></button>
                       </div>
                     </div>
                   </div>
@@ -551,14 +489,14 @@ const Dashboard = () => {
         {tabActivo === 'medicamentos' && (
           <div className="animate-in fade-in duration-300">
             <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Botiquín y Tratamientos</h2>
-            {medicamentos.length === 0 && (
+            {medicamentosFiltrados.length === 0 && (
               <div className="py-20 text-center opacity-60 border-2 border-dashed border-gray-200 rounded-[2rem]">
-                <p className="text-gray-500 font-bold text-lg">Botiquín vacío</p>
-                <p className="text-gray-400 text-sm mt-1">Añade medicamentos y alarmas 💊</p>
+                <p className="text-gray-500 font-bold text-lg">{busqueda ? 'No hay resultados' : 'Botiquín vacío'}</p>
+                <p className="text-gray-400 text-sm mt-1">{busqueda ? 'Prueba con otra palabra' : 'Añade medicamentos y alarmas 💊'}</p>
               </div>
             )}
             <div className="space-y-3">
-              {medicamentos.sort((a,b) => new Date(a.fecha || '2099-01-01') - new Date(b.fecha || '2099-01-01')).map((m) => {
+              {medicamentosFiltrados.sort((a,b) => new Date(a.fecha || '2099-01-01') - new Date(b.fecha || '2099-01-01')).map((m) => {
                 const dias = m.fecha ? calcularDias(m.fecha) : 999;
                 const est = m.fecha ? obtenerEstado(dias) : { bg: 'bg-white', border: 'border-gray-200', text: 'text-gray-700', titulo: 'ACTIVO', icono: '💊' };
                 const alarmaSonando = checkAlarmaVisual(m);
@@ -573,7 +511,7 @@ const Dashboard = () => {
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <button onClick={() => abrirFormulario(m, 'medicamento')} className="text-gray-400 hover:text-blue-500 p-1.5 bg-white rounded-full shadow-sm"><Edit2 size={14} /></button>
-                        <button onClick={() => borrarItem(m.id, 'medicamentos')} className="text-gray-400 hover:text-red-500 p-1.5 bg-white rounded-full shadow-sm"><Trash2 size={14} /></button>
+                        <button onClick={() => solicitarBorrado(m, 'medicamentos', 'medicamento')} className="text-gray-400 hover:text-red-500 p-1.5 bg-white rounded-full shadow-sm"><Trash2 size={14} /></button>
                       </div>
                     </div>
                     
@@ -623,13 +561,39 @@ const Dashboard = () => {
                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${c.comprado ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>{c.comprado && <CheckCircle2 size={14} className="text-white"/>}</div>
                     <span className={`font-black text-sm ${c.comprado ? 'line-through text-gray-400' : 'text-gray-800'}`}>{c.nombre}</span>
                   </div>
-                  <button onClick={() => borrarItem(c.id, 'compras')} className="text-gray-400 hover:text-red-500 p-2"><Trash2 size={16} /></button>
+                  {/* Las compras se borran directo, sin preguntar */}
+                  <button onClick={() => borrarItemDirecto(c.id, 'compras')} className="text-gray-400 hover:text-red-500 p-2"><Trash2 size={16} /></button>
                 </div>
               ))}
             </div>
           </div>
         )}
       </main>
+
+      {/* MODAL PAPELERA INTELIGENTE */}
+      {itemABorrar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-300">
+            <h3 className="text-2xl font-black italic text-gray-900 mb-2">¿Qué pasó con esto?</h3>
+            <p className="text-gray-500 text-xs mb-6 leading-relaxed">Ayúdanos a llevar las estadísticas de ahorro de tu familia.</p>
+            
+            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 mb-6">
+              <h4 className="font-black text-lg text-gray-800">{itemABorrar.nombre}</h4>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button onClick={() => confirmarBorradoEstadistica('consumido')} className="w-full bg-green-100 text-green-700 font-black p-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 transition-transform hover:bg-green-200 border border-green-200">
+                <ThumbsUp size={20}/> Lo consumimos / Usamos
+              </button>
+              <button onClick={() => confirmarBorradoEstadistica('basura')} className="w-full bg-red-100 text-red-700 font-black p-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 transition-transform hover:bg-red-200 border border-red-200">
+                <AlertTriangle size={20}/> Se echó a perder / A la basura
+              </button>
+              
+              <button onClick={() => setItemABorrar(null)} className="mt-4 text-gray-400 font-bold text-xs uppercase tracking-widest hover:text-gray-600 p-2">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* BOTÓN FLOTANTE GENERAL (Oculto en tab compras) */}
       {tabActivo !== 'compras' && (
