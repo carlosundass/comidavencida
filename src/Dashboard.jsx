@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, X, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing, Bell, Search, BookOpen, ThumbsUp, AlertTriangle, Menu, Infinity } from 'lucide-react';
+import { Trash2, X, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing, Bell, Search, BookOpen, ThumbsUp, AlertTriangle, Menu, Infinity, Globe } from 'lucide-react';
 import Scanner from './Scanner';
 // IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
@@ -54,7 +54,7 @@ const Dashboard = () => {
       const permiso = await Notification.requestPermission();
       setPermisoNotif(permiso);
       if (permiso === 'granted') {
-        new Notification("¡Notificaciones activadas!", { body: "Ahora Que No Venza te avisará de tus medicamentos.", icon: "https://cdn-icons-png.flaticon.com/512/883/883407.png" });
+        new Notification("¡Notificaciones activadas!", { body: "Ahora Que No Se Venza te avisará de tus medicamentos.", icon: "https://cdn-icons-png.flaticon.com/512/883/883407.png" });
       }
     } else {
        new Notification("Prueba de sonido", { body: "Las notificaciones están funcionando correctamente.", icon: "https://cdn-icons-png.flaticon.com/512/883/883407.png" });
@@ -108,7 +108,7 @@ const Dashboard = () => {
         if (!despensaSnap.exists() || despensaSnap.data().pin !== qrPin) { setErrorAuth('El código QR es inválido o el PIN cambió.'); } 
         else { iniciarSesion(qrId, qrPin); }
       } catch(e) { setErrorAuth('Error al leer el QR.'); } finally { setCargandoAuth(false); }
-    } else { setErrorAuth('Ese código QR no es una invitación de Que No Venza.'); }
+    } else { setErrorAuth('Ese código QR no es una invitación de Que No Se Venza.'); }
   };
 
   // ==========================================
@@ -236,39 +236,62 @@ const Dashboard = () => {
   const medicamentosFiltrados = medicamentos.filter(m => m.nombre.toLowerCase().includes(busqueda.toLowerCase()));
 
   // ==========================================
-  // RENDER: PANTALLA LOGIN (ÚNICA PANTALLA PÚBLICA)
+  // RENDER: PANTALLA LOGIN (PÚBLICA)
   // ==========================================
   if (!usuarioActual) {
     return (
-      <div className="min-h-screen bg-[#F8F9FB] flex flex-col justify-center items-center px-6 relative font-sans">
-        <div className="w-full max-w-sm mt-10 animate-in fade-in duration-500">
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-black tracking-tighter text-gray-900 italic">Quenosevenza.cl</h1>
-            <p className="text-blue-600 font-bold text-xs uppercase tracking-widest mt-2">Acceso Seguro</p>
-          </div>
-          <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl border border-gray-100">
-            <div className="flex bg-gray-50 rounded-2xl p-1 mb-8">
-              <button onClick={() => { setModoLogin('crear'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'crear' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Crear Nuevo</button>
-              <button onClick={() => { setModoLogin('entrar'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'entrar' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Ingresar</button>
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative font-sans">
+        
+        {/* HEADER LOGIN - BOTÓN A LA WEB */}
+        <div className="absolute top-0 left-0 w-full p-6 flex justify-start z-10">
+          <a href="https://quenosevenza.cl" className="text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-blue-600 transition-colors bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
+            ← Volver a la Web
+          </a>
+        </div>
+
+        <div className="flex-1 flex flex-col justify-center items-center px-6">
+          <div className="w-full max-w-sm mt-10 animate-in fade-in duration-500">
+            <div className="text-center mb-10">
+              <h1 className="text-4xl font-black tracking-tighter text-gray-900 italic">quenosevenza</h1>
+              <p className="text-blue-600 font-bold text-xs uppercase tracking-widest mt-2">Acceso Seguro</p>
             </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2"><Home size={12} className="inline mr-1"/> Nombre del Hogar</label>
-                <input type="text" placeholder="Ej: FamiliaRojas" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold text-gray-800" value={inputId} onChange={(e) => setInputId(e.target.value.replace(/\s+/g, ''))} />
+            <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl border border-gray-100">
+              <div className="flex bg-gray-50 rounded-2xl p-1 mb-8">
+                <button onClick={() => { setModoLogin('crear'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'crear' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Crear Nuevo</button>
+                <button onClick={() => { setModoLogin('entrar'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'entrar' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Ingresar</button>
               </div>
-              <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2"><Lock size={12} className="inline mr-1"/> PIN (4 números)</label>
-                <input type="password" inputMode="numeric" maxLength={4} placeholder="****" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-black text-2xl text-center tracking-[0.5em] text-gray-800" value={inputPin} onChange={(e) => setInputPin(e.target.value.replace(/\D/g, ''))} />
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2"><Home size={12} className="inline mr-1"/> Nombre del Hogar</label>
+                  <input type="text" placeholder="Ej: FamiliaRojas" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold text-gray-800" value={inputId} onChange={(e) => setInputId(e.target.value.replace(/\s+/g, ''))} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2"><Lock size={12} className="inline mr-1"/> PIN (4 números)</label>
+                  <input type="password" inputMode="numeric" maxLength={4} placeholder="****" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-black text-2xl text-center tracking-[0.5em] text-gray-800" value={inputPin} onChange={(e) => setInputPin(e.target.value.replace(/\D/g, ''))} />
+                </div>
+                {errorAuth && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center border border-red-100 animate-in fade-in">{errorAuth}</div>}
+                <button disabled={cargandoAuth} onClick={manejarAcceso} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl uppercase text-sm mt-4 active:scale-95 transition-transform">{cargandoAuth ? 'Conectando...' : (modoLogin === 'crear' ? 'Abrir Hogar 🚀' : 'Entrar ✅')}</button>
               </div>
-              {errorAuth && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center border border-red-100 animate-in fade-in">{errorAuth}</div>}
-              <button disabled={cargandoAuth} onClick={manejarAcceso} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl uppercase text-sm mt-4 active:scale-95 transition-transform">{cargandoAuth ? 'Conectando...' : (modoLogin === 'crear' ? 'Abrir Hogar 🚀' : 'Entrar ✅')}</button>
-            </div>
-            <div className="mt-8 pt-6 border-t border-gray-100">
-              <p className="text-center text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">O entrar con invitación</p>
-              <button onClick={() => setMostrarScannerLogin(true)} className="w-full bg-white border-2 border-dashed border-gray-300 text-gray-600 font-black p-4 rounded-2xl flex justify-center items-center gap-2 hover:bg-gray-50 active:scale-95 transition-all"><QrCode size={20} /> Escanear QR</button>
+              <div className="mt-8 pt-6 border-t border-gray-100">
+                <p className="text-center text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">O entrar con invitación</p>
+                <button onClick={() => setMostrarScannerLogin(true)} className="w-full bg-white border-2 border-dashed border-gray-300 text-gray-600 font-black p-4 rounded-2xl flex justify-center items-center gap-2 hover:bg-gray-50 active:scale-95 transition-all"><QrCode size={20} /> Escanear QR</button>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* FOOTER LOGIN - ENLACES LEGALES */}
+        <div className="p-6 text-center text-xs font-bold text-gray-400">
+          <div className="flex justify-center gap-4 mb-2">
+            <a href="https://quenosevenza.cl/politica-de-privacidad" className="hover:text-blue-600 transition-colors">Privacidad</a>
+            <span>•</span>
+            <a href="https://quenosevenza.cl/terminos-y-condiciones" className="hover:text-blue-600 transition-colors">Términos</a>
+            <span>•</span>
+            <a href="https://quenosevenza.cl/contacto" className="hover:text-blue-600 transition-colors">Contacto</a>
+          </div>
+          <p>© 2026 Que No Se Venza</p>
+        </div>
+
         {mostrarScannerLogin && <Scanner onScan={procesarQRLogin} onClose={() => setMostrarScannerLogin(false)} />}
       </div>
     );
@@ -284,15 +307,19 @@ const Dashboard = () => {
     <div className="min-h-screen bg-[#F8F9FB] font-sans pb-40 flex flex-col relative">
       <header className="px-6 pt-12 pb-4 flex justify-between items-center sticky top-0 bg-[#F8F9FB] z-20">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-gray-900 leading-none italic">quenovenza</h1>
+          <h1 className="text-2xl font-black tracking-tight text-gray-900 leading-none italic">quenosevenza</h1>
           <div className="flex items-center gap-1 mt-1 opacity-60">
             <Home size={12} className="text-blue-600" />
             <p className="font-bold text-[10px] uppercase tracking-widest text-gray-800">{usuarioActual.id}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* BOTÓN AL SITIO OFICIAL DESDE ADENTRO */}
+          <a href="https://quenosevenza.cl" className="bg-white border border-gray-200 p-2.5 rounded-full text-blue-600 hover:bg-blue-50 shadow-sm" title="Ir a la Web Oficial">
+            <Globe size={18} />
+          </a>
           <button onClick={pedirPermisoNotificaciones} className={`bg-white border border-gray-200 p-2.5 rounded-full hover:bg-blue-50 shadow-sm ${permisoNotif === 'granted' ? 'text-green-500' : 'text-gray-400'}`}><Bell size={18} /></button>
-          <button onClick={() => setMostrarQRCompartir(true)} className="bg-white border border-gray-200 p-2.5 rounded-full text-blue-600 hover:bg-blue-50 shadow-sm"><Share2 size={18} /></button>
+          <button onClick={() => setMostrarQRCompartir(true)} className="bg-white border border-gray-200 p-2.5 rounded-full text-indigo-600 hover:bg-indigo-50 shadow-sm"><Share2 size={18} /></button>
           <button onClick={cerrarSesion} className="bg-white border border-gray-200 p-2.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm"><LogOut size={18} /></button>
         </div>
       </header>
