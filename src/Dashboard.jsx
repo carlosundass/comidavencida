@@ -36,7 +36,6 @@ const Dashboard = () => {
     return guardado ? JSON.parse(guardado) : null;
   });
 
-  const [vista, setVista] = useState('landing'); 
   const [modoLogin, setModoLogin] = useState('crear');
   const [inputId, setInputId] = useState('');
   const [inputPin, setInputPin] = useState('');
@@ -44,10 +43,7 @@ const Dashboard = () => {
   const [cargandoAuth, setCargandoAuth] = useState(false);
   const [tabActivo, setTabActivo] = useState('comida');
 
-  // MENÚ PÚBLICO
-  const [menuPublicoAbierto, setMenuPublicoAbierto] = useState(false);
-
-  // ESTADOS PARA EL QR
+  // ESTADOS PARA EL QR Y NOTIFICACIONES
   const [mostrarQRCompartir, setMostrarQRCompartir] = useState(false);
   const [mostrarScannerLogin, setMostrarScannerLogin] = useState(false);
   const [permisoNotif, setPermisoNotif] = useState('Notification' in window ? Notification.permission : 'denied');
@@ -96,8 +92,9 @@ const Dashboard = () => {
   };
 
   const cerrarSesion = () => {
-    setUsuarioActual(null); localStorage.removeItem('cv_usuario_activo');
-    setProductos([]); setMedicamentos([]); setCompras([]); setVista('landing'); setBusqueda(''); setMenuPublicoAbierto(false);
+    setUsuarioActual(null); 
+    localStorage.removeItem('cv_usuario_activo');
+    setProductos([]); setMedicamentos([]); setCompras([]); setBusqueda('');
   };
 
   const procesarQRLogin = async (codigoQR) => {
@@ -128,7 +125,6 @@ const Dashboard = () => {
   const [editandoId, setEditandoId] = useState(null);
   const [alarmasEnviadas, setAlarmasEnviadas] = useState(new Set());
   
-  // MODIFICADO: Se añade 'sinFecha' al estado del formulario
   const [nuevoItem, setNuevoItem] = useState({ 
     tipo: 'alimento', nombre: '', fecha: '', sinFecha: false, dosis: '', frecuencia: '8', horaInicio: '08:00', duracion: '7', esSiempre: false
   });
@@ -186,7 +182,6 @@ const Dashboard = () => {
   const abrirFormulario = (itemToEdit = null, tipoPredefinido = 'alimento') => {
     if (itemToEdit) {
       setEditandoId(itemToEdit.id);
-      // MODIFICADO: Lee la propiedad sinFecha al editar
       setNuevoItem({ tipo: tipoPredefinido, nombre: itemToEdit.nombre || '', fecha: itemToEdit.fecha || '', sinFecha: itemToEdit.sinFecha || false, dosis: itemToEdit.dosis || '', frecuencia: itemToEdit.frecuencia || '8', horaInicio: itemToEdit.horaInicio || '08:00', duracion: itemToEdit.duracion || '7', esSiempre: itemToEdit.esSiempre || false });
     } else {
       setEditandoId(null);
@@ -198,7 +193,6 @@ const Dashboard = () => {
   const agregarOEditarItem = async () => {
     if (!nuevoItem.nombre) return;
     const coleccionDestino = nuevoItem.tipo === 'alimento' ? 'items' : 'medicamentos';
-    // MODIFICADO: Guarda sinFecha y borra la fecha si aplica
     const datos = { 
       nombre: nuevoItem.nombre, 
       fecha: nuevoItem.sinFecha ? '' : nuevoItem.fecha, 
@@ -229,7 +223,6 @@ const Dashboard = () => {
 
   const calcularDias = (f) => { if (!f) return 999; return Math.ceil((new Date(f) - new Date()) / (1000 * 60 * 60 * 24)); };
   
-  // MODIFICADO: Agrega el estado visual "INSUMO" si no tiene fecha
   const obtenerEstado = (item) => {
     if (item.sinFecha) return { titulo: 'INSUMO', bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-600', icono: '📦' };
     const dias = calcularDias(item.fecha);
@@ -243,150 +236,30 @@ const Dashboard = () => {
   const medicamentosFiltrados = medicamentos.filter(m => m.nombre.toLowerCase().includes(busqueda.toLowerCase()));
 
   // ==========================================
-  // RENDER RUTAS PÚBLICAS Y MENÚ (LANDING, GUÍAS, ETC)
+  // RENDER: PANTALLA LOGIN (ÚNICA PANTALLA PÚBLICA)
   // ==========================================
-  if (!usuarioActual && vista !== 'login') {
-    return (
-      <div className="min-h-screen bg-[#F8F9FB] flex flex-col font-sans">
-        
-        {/* CABECERA PÚBLICA CON MENÚ HAMBURGUESA */}
-        <header className="p-6 bg-white shadow-sm sticky top-0 z-50">
-          <div className="flex justify-between items-center">
-             <div className="flex items-center gap-3">
-                <button onClick={() => setMenuPublicoAbierto(!menuPublicoAbierto)} className="p-1 text-gray-600 hover:text-blue-600 transition-colors">
-                  {menuPublicoAbierto ? <X size={24} /> : <Menu size={24} />}
-                </button>
-                <h1 className="text-2xl font-black italic text-gray-900 cursor-pointer" onClick={() => {setVista('landing'); setMenuPublicoAbierto(false);}}>quenovenza</h1>
-             </div>
-             <button onClick={() => { setVista('login'); setModoLogin('entrar'); setMenuPublicoAbierto(false); }} className="text-blue-600 font-bold text-[11px] uppercase tracking-wider bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors">Entrar</button>
-          </div>
-          
-          {/* DESPLEGABLE DEL MENÚ */}
-          {menuPublicoAbierto && (
-            <nav className="mt-4 flex flex-col gap-1 border-t border-gray-100 pt-4 animate-in slide-in-from-top-2">
-              <button onClick={() => {setVista('landing'); setMenuPublicoAbierto(false);}} className={`text-left font-bold p-3 rounded-xl flex items-center gap-3 ${vista === 'landing' ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}><Home size={18} className={vista === 'landing' ? 'text-blue-600' : 'text-gray-400'}/> Inicio</button>
-              <button onClick={() => {setVista('guias'); setMenuPublicoAbierto(false);}} className={`text-left font-bold p-3 rounded-xl flex items-center gap-3 ${vista === 'guias' ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}><BookOpen size={18} className={vista === 'guias' ? 'text-blue-600' : 'text-gray-400'}/> Guías y Tips (SEO)</button>
-              <button onClick={() => {setVista('contacto'); setMenuPublicoAbierto(false);}} className={`text-left font-bold p-3 rounded-xl flex items-center gap-3 ${vista === 'contacto' ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}><Tag size={18} className={vista === 'contacto' ? 'text-blue-600' : 'text-gray-400'}/> Contacto</button>
-              <div className="h-px bg-gray-100 my-2"></div>
-              <button onClick={() => {setVista('privacidad'); setMenuPublicoAbierto(false);}} className={`text-left font-bold p-3 rounded-xl text-sm ${vista === 'privacidad' ? 'text-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}>Política de Privacidad</button>
-              <button onClick={() => {setVista('terminos'); setMenuPublicoAbierto(false);}} className={`text-left font-bold p-3 rounded-xl text-sm ${vista === 'terminos' ? 'text-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}>Términos y Condiciones</button>
-            </nav>
-          )}
-        </header>
-
-        <main className="flex-1 p-6 max-w-2xl mx-auto w-full relative z-10">
-           
-           {/* --- VISTA: INICIO BONITO Y LIMPIO --- */}
-           {vista === 'landing' && (
-              <div className="animate-in fade-in duration-300">
-                 <div className="text-center mt-6 mb-10">
-                    <div className="inline-block bg-green-100 text-green-700 font-black px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest mb-4 shadow-sm">Herramienta 100% Gratuita</div>
-                    <h2 className="text-4xl font-black tracking-tight text-gray-900 leading-tight mb-4">Evita el desperdicio y <span className="text-blue-600">ahorra dinero</span>.</h2>
-                    <p className="text-gray-600 font-medium text-lg leading-relaxed">La herramienta sin costo para organizar tu refrigerador, despensa y tu botiquín médico familiar.</p>
-                 </div>
-                 
-                 <AdSenseBanner adSlot="PON_TU_SLOT_AQUI_1" />
-
-                 <div className="space-y-4 mb-10">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
-                      <div className="bg-green-100 text-green-600 p-3 rounded-full h-fit"><DollarSign size={24} /></div>
-                      <div><h3 className="font-black text-gray-900 mb-1">Ahorro Inteligente</h3><p className="text-gray-500 text-sm">Organizar tu despensa evita comprar productos duplicados.</p></div>
-                    </div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
-                      <div className="bg-blue-100 text-blue-600 p-3 rounded-full h-fit"><Leaf size={24} /></div>
-                      <div><h3 className="font-black text-gray-900 mb-1">Impacto Ambiental</h3><p className="text-gray-500 text-sm">El desperdicio de comida es un problema ecológico grave.</p></div>
-                    </div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
-                      <div className="bg-indigo-100 text-indigo-600 p-3 rounded-full h-fit"><BellRing size={24} /></div>
-                      <div><h3 className="font-black text-gray-900 mb-1">Botiquín y Notificaciones</h3><p className="text-gray-500 text-sm">Registra medicinas y recibe alarmas cuando te toque la dosis.</p></div>
-                    </div>
-                 </div>
-                 <button onClick={() => { setVista('login'); setModoLogin('crear'); }} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm flex justify-center items-center gap-3 mb-10 transition-transform">
-                    <QrCode size={22}/> <span>Crear Hogar Gratis</span> <ArrowRight size={18} />
-                 </button>
-              </div>
-           )}
-
-           {/* --- VISTA: GUÍAS Y TIPS SEO (TEXTOS DE ADSENSE) --- */}
-           {vista === 'guias' && (
-              <div className="animate-in fade-in duration-300">
-                 <h3 className="text-3xl font-black text-gray-900 mb-8 flex items-center gap-3"><BookOpen className="text-blue-500" size={32}/> Guías Prácticas</h3>
-                 <div className="bg-white p-8 md:p-10 rounded-3xl shadow-sm border border-gray-100 mb-8">
-                   
-                   <h4 className="text-2xl font-bold text-gray-800 mb-4 leading-tight">Cómo organizar tu refrigerador para que la comida dure el doble</h4>
-                   <p className="text-gray-600 leading-relaxed text-sm mb-4">El orden en el que guardas tus alimentos dentro del refrigerador es vital para su conservación. Cada estante tiene una temperatura diferente, y colocar los productos incorrectamente es la causa principal de que se echen a perder antes de tiempo. En las bandejas superiores, donde la temperatura es más constante, debes guardar los alimentos que no necesitan cocinarse, como las sobras, bebidas o comidas preparadas.</p>
-                   <p className="text-gray-600 leading-relaxed text-sm mb-10 pb-10 border-b border-gray-100">Por otro lado, los cajones inferiores están diseñados para mantener la humedad ideal de las frutas y verduras, evitando que se marchiten. Usar una herramienta como <strong>Que No Venza</strong> te permite catalogar estos alimentos y recibir una alerta con nuestro sistema de semáforo antes de que su vida útil termine, reduciendo drásticamente el impacto ambiental y el gasto económico mensual de tu familia.</p>
-
-                   <h4 className="text-2xl font-bold text-gray-800 mb-4 leading-tight">Botiquín Seguro: Lo que necesitas saber sobre la caducidad</h4>
-                   <p className="text-gray-600 leading-relaxed text-sm mb-4">Mantener un botiquín médico organizado no es un lujo, es una necesidad para la salud familiar. La caducidad de un medicamento no significa simplemente que deja de ser efectivo; en muchos casos, los compuestos químicos pueden alterarse y volverse perjudiciales o generar efectos secundarios adversos. Es imperativo revisar el estado de los jarabes, pastillas y cremas al menos cada tres meses.</p>
-                   <p className="text-gray-600 leading-relaxed text-sm mb-10 pb-10 border-b border-gray-100">Con nuestra aplicación gratuita, puedes digitalizar todo tu botiquín en minutos. Al registrar la fecha de vencimiento y la dosis recetada, la plataforma se encarga de enviarte <strong>notificaciones push directamente a tu celular</strong>, asegurando que tú y tus seres queridos sigan el plan de tratamiento al pie de la letra y sin riesgos de consumir remedios en mal estado.</p>
-
-                   <h4 className="text-2xl font-bold text-gray-800 mb-4 leading-tight">El costo oculto del desperdicio de alimentos y cómo evitarlo</h4>
-                   <p className="text-gray-600 leading-relaxed text-sm mb-4">Según la ONU, casi un tercio de todos los alimentos producidos a nivel mundial se pierde o se desperdicia. Esto no solo representa un problema ético y ecológico masivo, con millones de toneladas de gases de efecto invernadero emitidos en vano, sino también un agujero silencioso en la economía de tu hogar. Cada vez que botas comida que se pudrió por olvido, estás botando dinero directamente a la basura.</p>
-                   <p className="text-gray-600 leading-relaxed text-sm">La solución empieza por la planificación y el inventario. Al saber exactamente qué tienes en tu despensa mediante un registro digital como el que ofrece nuestra app, evitas comprar productos duplicados en el supermercado. La clave está en consumir primero lo que está por vencer, creando un ciclo sostenible y económico en tu hogar.</p>
-                 </div>
-                 <AdSenseBanner adSlot="PON_TU_SLOT_AQUI_2" />
-              </div>
-           )}
-
-           {/* --- VISTA: CONTACTO --- */}
-           {vista === 'contacto' && (
-              <div className="animate-in fade-in duration-300 mt-10">
-                <div className="bg-white p-8 rounded-[2rem] shadow-xl text-center border border-gray-100">
-                  <h1 className="text-3xl font-black mb-4 text-gray-900 italic">Contacto</h1>
-                  <p className="text-gray-500 text-sm mb-8 leading-relaxed">¿Tienes dudas, sugerencias de nuevas funciones o encontraste algún error en la aplicación? ¡Nos encantaría escucharte!</p>
-                  <a href="mailto:hola@quenovenza.cl" className="inline-block w-full bg-blue-600 text-white font-black p-5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 uppercase tracking-widest text-sm transition-transform">Enviar un correo</a>
-                  <p className="mt-6 text-xs text-gray-400">Nuestro equipo te responderá lo antes posible.</p>
-                </div>
-              </div>
-           )}
-
-           {/* --- VISTA: PRIVACIDAD --- */}
-           {vista === 'privacidad' && (
-              <div className="animate-in fade-in duration-300">
-                 <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 mt-4">
-                    <h1 className="text-2xl font-black mb-6 text-gray-900">Política de Privacidad</h1>
-                    <div className="text-gray-600 space-y-4 text-sm leading-relaxed"><p><strong>Última actualización: Abril 2026</strong></p><p>En Que No Venza, nos tomamos muy en serio tu privacidad. Esta política explica cómo recopilamos, usamos y protegemos tu información cuando utilizas nuestra herramienta de gestión de hogar.</p><h3 className="font-bold text-gray-900 mt-6 mb-2">1. Información que recopilamos</h3><p>No recopilamos información personal identificable como nombres reales, correos electrónicos o números de teléfono. Solo almacenamos el "Nombre de Hogar" y el "PIN" que tú mismo creas para acceder a tu cuenta privada, además de los datos de los alimentos, medicamentos y lista de compras que ingresas voluntariamente.</p><h3 className="font-bold text-gray-900 mt-6 mb-2">2. Publicidad (Google AdSense)</h3><p>Utilizamos Google AdSense para mostrar anuncios y mantener este servicio gratuito. Google utiliza cookies para publicar anuncios basados en tus visitas anteriores a nuestra aplicación u otros sitios web de Internet. Puedes inhabilitar la publicidad personalizada visitando la Configuración de anuncios de Google.</p><h3 className="font-bold text-gray-900 mt-6 mb-2">3. Almacenamiento de Datos</h3><p>Tus datos de inventario se almacenan de forma segura utilizando los servicios en la nube de Google (Firebase Firestore). No vendemos, alquilamos ni compartimos tus datos de inventario con terceros bajo ninguna circunstancia.</p><h3 className="font-bold text-gray-900 mt-6 mb-2">4. Uso de Cookies</h3><p>Utilizamos cookies propias y de terceros para gestionar la sesión, recordar tus preferencias de idioma y analizar el tráfico para mejorar el servicio. Al utilizar la app, aceptas el uso de cookies.</p></div>
-                 </div>
-              </div>
-           )}
-
-           {/* --- VISTA: TÉRMINOS --- */}
-           {vista === 'terminos' && (
-              <div className="animate-in fade-in duration-300">
-                 <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 mt-4">
-                    <h1 className="text-2xl font-black mb-6 text-gray-900">Términos y Condiciones</h1>
-                    <div className="text-gray-600 space-y-4 text-sm leading-relaxed"><h3 className="font-bold text-gray-900 mt-6 mb-2">1. Servicio 100% Gratuito</h3><p>Que No Venza se ofrece de manera completamente gratuita para todos los usuarios. No existen cargos ocultos, versiones premium ni suscripciones. La plataforma se mantiene operativa y en constante mejora gracias a la publicidad mostrada en pantalla.</p><h3 className="font-bold text-gray-900 mt-6 mb-2">2. Aceptación de los Términos</h3><p>Al acceder y utilizar la plataforma Que No Venza, aceptas estar sujeto a estos Términos y Condiciones en su totalidad. Si no estás de acuerdo con alguna parte, por favor no utilices la aplicación.</p><h3 className="font-bold text-gray-900 mt-6 mb-2">3. Uso de la Aplicación</h3><p>Que No Venza es una herramienta de organización personal y familiar. Eres el único responsable de mantener la confidencialidad de tu ID de Hogar y PIN para proteger tu información.</p><h3 className="font-bold text-gray-900 mt-6 mb-2">4. Limitación de Responsabilidad Médica y de Salud</h3><p>Esta aplicación proporciona cálculos estimativos de fechas de vencimiento y sistemas de alarmas para recordatorios. <strong>No somos un servicio médico.</strong> No nos hacemos responsables por alimentos consumidos en mal estado, intoxicaciones, pérdidas económicas, olvidos de medicación o cualquier problema de salud derivado del uso de la información ingresada. La revisión final del estado real del alimento o el cumplimiento estricto de la dosis es responsabilidad exclusiva del usuario.</p><h3 className="font-bold text-gray-900 mt-6 mb-2">5. Derechos de Autor</h3><p>El código, el diseño visual, y el contenido de este sitio son propiedad de Que No Venza y están protegidos por leyes de propiedad intelectual.</p></div>
-                 </div>
-              </div>
-           )}
-
-        </main>
-        
-        <footer className="bg-gray-100 p-8 text-center text-xs text-gray-500 font-medium mt-auto relative z-10 border-t border-gray-200">
-          <p>© 2026 Que No Venza. Una solución familiar para la gestión inteligente del hogar.</p>
-        </footer>
-      </div>
-    );
-  }
-
-  // ==========================================
-  // RENDER: PANTALLA LOGIN
-  // ==========================================
-  if (!usuarioActual && vista === 'login') {
+  if (!usuarioActual) {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col justify-center items-center px-6 relative font-sans">
-        <button onClick={() => setVista('landing')} className="absolute top-6 left-6 text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-gray-600 transition-colors">← Volver</button>
-        <div className="w-full max-w-sm mt-10">
-          <div className="text-center mb-10"><h1 className="text-4xl font-black tracking-tighter text-gray-900 italic">quenovenza</h1><p className="text-blue-600 font-bold text-xs uppercase tracking-widest mt-2">Acceso Seguro</p></div>
+        <div className="w-full max-w-sm mt-10 animate-in fade-in duration-500">
+          <div className="text-center mb-10">
+            <h1 className="text-4xl font-black tracking-tighter text-gray-900 italic">quenovenza</h1>
+            <p className="text-blue-600 font-bold text-xs uppercase tracking-widest mt-2">Acceso Seguro</p>
+          </div>
           <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl border border-gray-100">
             <div className="flex bg-gray-50 rounded-2xl p-1 mb-8">
               <button onClick={() => { setModoLogin('crear'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'crear' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Crear Nuevo</button>
               <button onClick={() => { setModoLogin('entrar'); setErrorAuth(''); }} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${modoLogin === 'entrar' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Ingresar</button>
             </div>
             <div className="space-y-4">
-              <div><label className="text-[10px] font-black text-gray-400 uppercase ml-2"><Home size={12} className="inline mr-1"/> Nombre del Hogar</label><input type="text" placeholder="Ej: FamiliaRojas" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold text-gray-800" value={inputId} onChange={(e) => setInputId(e.target.value.replace(/\s+/g, ''))} /></div>
-              <div><label className="text-[10px] font-black text-gray-400 uppercase ml-2"><Lock size={12} className="inline mr-1"/> PIN (4 números)</label><input type="password" inputMode="numeric" maxLength={4} placeholder="****" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-black text-2xl text-center tracking-[0.5em] text-gray-800" value={inputPin} onChange={(e) => setInputPin(e.target.value.replace(/\D/g, ''))} /></div>
+              <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-2"><Home size={12} className="inline mr-1"/> Nombre del Hogar</label>
+                <input type="text" placeholder="Ej: FamiliaRojas" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold text-gray-800" value={inputId} onChange={(e) => setInputId(e.target.value.replace(/\s+/g, ''))} />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-2"><Lock size={12} className="inline mr-1"/> PIN (4 números)</label>
+                <input type="password" inputMode="numeric" maxLength={4} placeholder="****" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-black text-2xl text-center tracking-[0.5em] text-gray-800" value={inputPin} onChange={(e) => setInputPin(e.target.value.replace(/\D/g, ''))} />
+              </div>
               {errorAuth && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center border border-red-100 animate-in fade-in">{errorAuth}</div>}
               <button disabled={cargandoAuth} onClick={manejarAcceso} className="w-full bg-blue-600 text-white font-black p-5 rounded-2xl uppercase text-sm mt-4 active:scale-95 transition-transform">{cargandoAuth ? 'Conectando...' : (modoLogin === 'crear' ? 'Abrir Hogar 🚀' : 'Entrar ✅')}</button>
             </div>
