@@ -243,7 +243,7 @@ const Dashboard = () => {
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col justify-center items-center px-6 relative font-sans">
         <div className="w-full max-w-sm mt-10 animate-in fade-in duration-500">
           <div className="text-center mb-10">
-            <h1 className="text-4xl font-black tracking-tighter text-gray-900 italic">quenovenza</h1>
+            <h1 className="text-4xl font-black tracking-tighter text-gray-900 italic">Quenosevenza.cl</h1>
             <p className="text-blue-600 font-bold text-xs uppercase tracking-widest mt-2">Acceso Seguro</p>
           </div>
           <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl border border-gray-100">
