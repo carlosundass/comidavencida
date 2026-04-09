@@ -280,9 +280,11 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* FOOTER LOGIN - ENLACES LEGALES */}
+        {/* FOOTER LOGIN - ENLACES LEGALES Y BLOG */}
         <div className="p-6 text-center text-xs font-bold text-gray-400">
-          <div className="flex justify-center gap-4 mb-2">
+          <div className="flex justify-center gap-3 mb-2 flex-wrap">
+            <a href="https://quenosevenza.cl/blog" className="hover:text-blue-600 transition-colors">Blog</a>
+            <span>•</span>
             <a href="https://quenosevenza.cl/politica-de-privacidad" className="hover:text-blue-600 transition-colors">Privacidad</a>
             <span>•</span>
             <a href="https://quenosevenza.cl/terminos-y-condiciones" className="hover:text-blue-600 transition-colors">Términos</a>
