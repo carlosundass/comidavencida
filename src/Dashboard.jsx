@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, X, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing, Bell, Search, BookOpen, ThumbsUp, AlertTriangle, Menu, Infinity, Globe } from 'lucide-react';
+import { Trash2, X, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing, Bell, Search, BookOpen, ThumbsUp, AlertTriangle, Menu, Infinity, Globe, FileText } from 'lucide-react';
 import Scanner from './Scanner';
 // IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
@@ -242,7 +242,6 @@ const Dashboard = () => {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative font-sans">
         
-        {/* HEADER LOGIN - BOTÓN A LA WEB */}
         <div className="absolute top-0 left-0 w-full p-6 flex justify-start z-10">
           <a href="https://quenosevenza.cl" className="text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-blue-600 transition-colors bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
             ← Volver a la Web
@@ -280,16 +279,13 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* FOOTER LOGIN - ENLACES LEGALES Y BLOG */}
-        <div className="p-6 text-center text-xs font-bold text-gray-400">
-          <div className="flex justify-center gap-3 mb-2 flex-wrap">
-            <a href="https://quenosevenza.cl/blog" className="hover:text-blue-600 transition-colors">Blog</a>
-            <span>•</span>
-            <a href="https://quenosevenza.cl/politica-de-privacidad" className="hover:text-blue-600 transition-colors">Privacidad</a>
-            <span>•</span>
-            <a href="https://quenosevenza.cl/terminos-y-condiciones" className="hover:text-blue-600 transition-colors">Términos</a>
-            <span>•</span>
-            <a href="https://quenosevenza.cl/contacto" className="hover:text-blue-600 transition-colors">Contacto</a>
+        <div className="p-6 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
+          <div className="flex justify-center gap-4 mb-3 flex-wrap">
+            <a href="https://quenosevenza.cl/blog" className="hover:text-blue-600">Blog</a>
+            <a href="https://quenosevenza.cl/sobre-nosotros" className="hover:text-blue-600">Nuestra Misión</a>
+            <a href="https://quenosevenza.cl/politica-de-privacidad" className="hover:text-blue-600">Privacidad</a>
+            <a href="https://quenosevenza.cl/terminos-y-condiciones" className="hover:text-blue-600">Términos</a>
+            <a href="https://quenosevenza.cl/contacto" className="hover:text-blue-600">Contacto</a>
           </div>
           <p>© 2026 Que No Se Venza</p>
         </div>
@@ -299,9 +295,6 @@ const Dashboard = () => {
     );
   }
 
-  // ==========================================
-  // RENDER: DASHBOARD PRINCIPAL Y LÓGICA DE FILTROS
-  // ==========================================
   const qrData = `QNV-LOGIN|${usuarioActual?.id || 'error'}|${usuarioActual?.pin || '0000'}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrData)}`;
 
@@ -316,7 +309,6 @@ const Dashboard = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* BOTÓN AL SITIO OFICIAL DESDE ADENTRO */}
           <a href="https://quenosevenza.cl" className="bg-white border border-gray-200 p-2.5 rounded-full text-blue-600 hover:bg-blue-50 shadow-sm" title="Ir a la Web Oficial">
             <Globe size={18} />
           </a>
@@ -327,7 +319,6 @@ const Dashboard = () => {
       </header>
 
       <main className="flex-1 px-6 mt-2 relative z-10">
-        {/* BUSCADOR INTELIGENTE */}
         {(tabActivo === 'comida' || tabActivo === 'medicamentos') && (
           <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 mb-6 animate-in slide-in-from-top-4">
              <Search size={18} className="text-gray-400 ml-1" />
@@ -336,16 +327,29 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* TAB 1: COMIDA */}
+        {/* ==========================================
+            ZONA DE REGALO MENSUAL (EXCLUSIVO)
+           ========================================== */}
+        {tabActivo === 'comida' && !busqueda && (
+          <div className="mb-8 animate-in zoom-in-95 duration-500">
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2.5rem] p-6 text-white shadow-xl relative overflow-hidden">
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-blue-400/20 rounded-full blur-xl"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="bg-white/20 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Beneficio Exclusivo Abril</span>
+                </div>
+                <h3 className="text-xl font-black italic leading-tight mb-2">🎁 Tu Regalo: <br/>Guía de Limpieza Pro</h3>
+                <p className="text-blue-100 text-xs font-medium mb-4 leading-relaxed">Aprende a organizar tu refrigerador para que nada se venza y ahorres más dinero.</p>
+                <a href="https://tuweb.cl/wp-content/uploads/2026/04/guia-limpieza-abril.pdf" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-white text-blue-600 font-black px-6 py-3 rounded-2xl text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-colors">Descargar PDF <ArrowRight size={14} /></a>
+              </div>
+            </div>
+          </div>
+        )}
+
         {tabActivo === 'comida' && (
           <div className="animate-in fade-in duration-300">
             <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Semáforo de Alimentos</h2>
-            {productosFiltrados.length === 0 && (
-              <div className="py-20 text-center opacity-60 border-2 border-dashed border-gray-200 rounded-[2rem]">
-                <p className="text-gray-500 font-bold text-lg">{busqueda ? 'No hay resultados' : 'Todo al día'}</p>
-                <p className="text-gray-400 text-sm mt-1">{busqueda ? 'Prueba con otra palabra' : 'Tu despensa está vacía ☁️'}</p>
-              </div>
-            )}
             <div className="space-y-3">
               {productosFiltrados.sort((a,b) => new Date(a.fecha) - new Date(b.fecha)).map((p) => {
                 const est = obtenerEstado(p);
@@ -366,7 +370,6 @@ const Dashboard = () => {
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <button onClick={() => abrirFormulario(p, 'alimento')} className="text-gray-400 hover:text-blue-500 p-1.5 bg-white rounded-full shadow-sm"><Edit2 size={12} /></button>
-                        <button onClick={() => agregarACompras(p.nombre)} className="text-gray-400 hover:text-green-500 p-1.5 bg-white rounded-full shadow-sm" title="Añadir a Compras"><ShoppingCart size={12} /></button>
                         <button onClick={() => solicitarBorrado(p, 'items', 'alimento')} className="text-gray-400 hover:text-red-500 p-1.5 bg-white rounded-full shadow-sm"><Trash2 size={12} /></button>
                       </div>
                     </div>
@@ -378,51 +381,37 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* TAB 2: MEDICAMENTOS */}
         {tabActivo === 'medicamentos' && (
           <div className="animate-in fade-in duration-300">
-            <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Botiquín y Tratamientos</h2>
-            {medicamentosFiltrados.length === 0 && (
-              <div className="py-20 text-center opacity-60 border-2 border-dashed border-gray-200 rounded-[2rem]">
-                <p className="text-gray-500 font-bold text-lg">{busqueda ? 'No hay resultados' : 'Botiquín vacío'}</p>
-                <p className="text-gray-400 text-sm mt-1">{busqueda ? 'Prueba con otra palabra' : 'Añade medicamentos y alarmas 💊'}</p>
-              </div>
-            )}
+            <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Botiquín</h2>
             <div className="space-y-3">
-              {medicamentosFiltrados.sort((a,b) => new Date(a.fecha || '2099-01-01') - new Date(b.fecha || '2099-01-01')).map((m) => {
+              {medicamentosFiltrados.map((m) => {
                 const est = obtenerEstado(m);
-                const dias = m.sinFecha ? null : calcularDias(m.fecha);
                 const alarmaSonando = !m.sinFecha && checkAlarmaVisual(m);
-                
                 return (
                   <div key={m.id} className={`p-5 rounded-[1.5rem] border-2 flex flex-col justify-between shadow-sm transition-colors ${alarmaSonando ? 'bg-red-100 border-red-300 shadow-xl' : est.bg + ' ' + est.border}`}>
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <div className="flex items-center gap-1.5 mb-1"><span className="text-[10px]">{est.icono}</span><span className={`text-[9px] font-black uppercase tracking-widest ${est.text}`}>{est.titulo}</span></div>
-                        <h3 className={`font-black text-[16px] leading-tight ${!m.sinFecha && dias < 0 ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{m.nombre}</h3>
-                        <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">{m.sinFecha ? 'Permanente' : (m.fecha ? `Vence: ${m.fecha.split('-').reverse().join('/')}` : 'Sin fecha set.')}</p>
+                        <h3 className="font-black text-[16px] leading-tight text-gray-900">{m.nombre}</h3>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">{m.sinFecha ? 'Permanente' : (m.fecha ? `Vence: ${m.fecha.split('-').reverse().join('/')}` : 'Sin fecha')}</p>
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <button onClick={() => abrirFormulario(m, 'medicamento')} className="text-gray-400 hover:text-blue-500 p-1.5 bg-white rounded-full shadow-sm"><Edit2 size={14} /></button>
                         <button onClick={() => solicitarBorrado(m, 'medicamentos', 'medicamento')} className="text-gray-400 hover:text-red-500 p-1.5 bg-white rounded-full shadow-sm"><Trash2 size={14} /></button>
                       </div>
                     </div>
-                    
                     {!m.sinFecha && m.frecuencia !== 'Sin Alarma' && (
                       <div className={`p-3 rounded-xl border flex items-center justify-between ${alarmaSonando ? 'bg-red-500 border-red-600 shadow-md' : 'bg-white/60 border-white'}`}>
                         <div className="flex items-center gap-3">
                           <Clock size={16} className={alarmaSonando ? 'text-white' : 'text-indigo-500'} />
                           <div>
                             <p className={`text-[11px] font-black leading-tight ${alarmaSonando ? 'text-white' : 'text-gray-800'}`}>Dosis: {m.dosis}</p>
-                            <p className={`text-[9px] font-bold uppercase tracking-widest ${alarmaSonando ? 'text-red-100' : 'text-gray-500'}`}>
-                              Cada {m.frecuencia}h • <span className={alarmaSonando ? 'text-white' : 'text-indigo-400'}>{m.esSiempre ? 'Continuo' : `${m.duracion} días`}</span>
-                            </p>
+                            <p className={`text-[9px] font-bold uppercase tracking-widest ${alarmaSonando ? 'text-red-100' : 'text-gray-500'}`}>Cada {m.frecuencia}h</p>
                           </div>
                         </div>
                         {alarmaSonando && (
-                          <button onClick={() => registrarToma(m.id)} className="bg-white text-red-600 font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded-lg active:scale-95 flex items-center gap-1 shadow-sm">
-                            <CheckCircle2 size={14}/> Tomé
-                          </button>
+                          <button onClick={() => registrarToma(m.id)} className="bg-white text-red-600 font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded-lg shadow-sm">Tomé</button>
                         )}
                       </div>
                     )}
@@ -430,25 +419,18 @@ const Dashboard = () => {
                 );
               })}
             </div>
-            <AdSenseBanner adSlot="PON_TU_SLOT_AQUI_3" />
           </div>
         )}
 
-        {/* TAB 3: COMPRAS */}
         {tabActivo === 'compras' && (
           <div className="animate-in fade-in duration-300">
             <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1 flex items-center gap-1"><ShoppingCart size={14}/> Lista de Compras</h2>
             <div className="flex gap-2 mb-4">
-              <input type="text" placeholder="Añadir a la lista (Presiona Enter)..." className="flex-1 p-4 bg-white shadow-sm border border-gray-100 rounded-2xl outline-none font-bold text-gray-800 text-sm" 
+              <input type="text" placeholder="Añadir a la lista..." className="flex-1 p-4 bg-white shadow-sm border border-gray-100 rounded-2xl outline-none font-bold text-gray-800 text-sm" 
                      onKeyDown={(e) => { if (e.key === 'Enter' && e.target.value.trim()) { agregarACompras(e.target.value.trim()); e.target.value = ''; } }} />
             </div>
-            {compras.length === 0 && (
-              <div className="py-16 text-center opacity-60 border-2 border-dashed border-gray-200 rounded-[2rem]">
-                <p className="text-gray-500 font-bold text-lg">Lista vacía</p>
-              </div>
-            )}
             <div className="space-y-2">
-              {compras.sort((a,b) => a.comprado - b.comprado).map((c) => (
+              {compras.map((c) => (
                 <div key={c.id} className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${c.comprado ? 'bg-gray-50 border-gray-200 opacity-60' : 'bg-white border-gray-200 shadow-sm'}`}>
                   <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => toggleCompra(c)}>
                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${c.comprado ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>{c.comprado && <CheckCircle2 size={14} className="text-white"/>}</div>
@@ -462,71 +444,51 @@ const Dashboard = () => {
         )}
       </main>
 
-      {/* MODAL PAPELERA INTELIGENTE */}
-      {itemABorrar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-300">
-            <h3 className="text-2xl font-black italic text-gray-900 mb-2">¿Qué pasó con esto?</h3>
-            <p className="text-gray-500 text-xs mb-6 leading-relaxed">Ayúdanos a llevar las estadísticas de ahorro de tu familia.</p>
-            
-            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 mb-6">
-              <h4 className="font-black text-lg text-gray-800">{itemABorrar.nombre}</h4>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <button onClick={() => confirmarBorradoEstadistica('consumido')} className="w-full bg-green-100 text-green-700 font-black p-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 transition-transform hover:bg-green-200 border border-green-200">
-                <ThumbsUp size={20}/> Lo consumimos / Usamos
-              </button>
-              <button onClick={() => confirmarBorradoEstadistica('basura')} className="w-full bg-red-100 text-red-700 font-black p-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 transition-transform hover:bg-red-200 border border-red-200">
-                <AlertTriangle size={20}/> Se echó a perder / A la basura
-              </button>
-              
-              <button onClick={() => setItemABorrar(null)} className="mt-4 text-gray-400 font-bold text-xs uppercase tracking-widest hover:text-gray-600 p-2">Cancelar</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* BOTÓN FLOTANTE GENERAL */}
-      {tabActivo !== 'compras' && (
-        <div className="fixed bottom-[80px] left-0 right-0 p-6 flex flex-col gap-3 pointer-events-none z-30">
-          <div className="pointer-events-auto flex justify-end">
-            <button onClick={() => abrirFormulario(null, tabActivo === 'comida' ? 'alimento' : 'medicamento')} 
-              className="w-14 h-14 bg-gray-900 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-800 transition-transform active:scale-95">
-              <Plus size={24} strokeWidth={3} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* NAVEGACIÓN INFERIOR (3 TABS) */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 pb-safe z-40">
         <div className="max-w-md mx-auto flex justify-between px-4 py-2">
-          <button onClick={() => setTabActivo('comida')} className={`flex flex-col items-center p-2 transition-colors flex-1 ${tabActivo === 'comida' ? 'text-blue-600' : 'text-gray-400'}`}>
+          <button onClick={() => setTabActivo('comida')} className={`flex flex-col items-center p-2 flex-1 ${tabActivo === 'comida' ? 'text-blue-600' : 'text-gray-400'}`}>
             <Leaf size={22} className={tabActivo === 'comida' ? 'fill-blue-100' : ''} />
             <span className="text-[10px] font-bold mt-1 uppercase tracking-wider">Despensa</span>
           </button>
-          <div className="w-px bg-gray-100 my-2"></div>
-          <button onClick={() => setTabActivo('medicamentos')} className={`flex flex-col items-center p-2 transition-colors flex-1 ${tabActivo === 'medicamentos' ? 'text-indigo-600' : 'text-gray-400'}`}>
+          <button onClick={() => setTabActivo('medicamentos')} className={`flex flex-col items-center p-2 flex-1 ${tabActivo === 'medicamentos' ? 'text-indigo-600' : 'text-gray-400'}`}>
             <Pill size={22} className={tabActivo === 'medicamentos' ? 'fill-indigo-100' : ''} />
             <span className="text-[10px] font-bold mt-1 uppercase tracking-wider">Botiquín</span>
           </button>
-          <div className="w-px bg-gray-100 my-2"></div>
-          <button onClick={() => setTabActivo('compras')} className={`flex flex-col items-center p-2 transition-colors flex-1 ${tabActivo === 'compras' ? 'text-green-600' : 'text-gray-400'}`}>
+          <button onClick={() => setTabActivo('compras')} className={`flex flex-col items-center p-2 flex-1 ${tabActivo === 'compras' ? 'text-green-600' : 'text-gray-400'}`}>
             <ShoppingCart size={22} className={tabActivo === 'compras' ? 'fill-green-100' : ''} />
             <span className="text-[10px] font-bold mt-1 uppercase tracking-wider">Compras</span>
           </button>
         </div>
       </nav>
 
-      {/* MODAL QR DE INVITACIÓN */}
+      {itemABorrar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-300">
+            <h3 className="text-2xl font-black italic text-gray-900 mb-2">¿Qué pasó con esto?</h3>
+            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 mb-6 font-black text-lg text-gray-800">{itemABorrar.nombre}</div>
+            <div className="flex flex-col gap-3">
+              <button onClick={() => confirmarBorradoEstadistica('consumido')} className="w-full bg-green-100 text-green-700 font-black p-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 border border-green-200"><ThumbsUp size={20}/> Consumido / Usado</button>
+              <button onClick={() => confirmarBorradoEstadistica('basura')} className="w-full bg-red-100 text-red-700 font-black p-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 border border-red-200"><AlertTriangle size={20}/> Se echó a perder</button>
+              <button onClick={() => setItemABorrar(null)} className="mt-4 text-gray-400 font-bold text-xs uppercase tracking-widest p-2">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tabActivo !== 'compras' && (
+        <div className="fixed bottom-[80px] left-0 right-0 p-6 flex flex-col gap-3 pointer-events-none z-30">
+          <div className="pointer-events-auto flex justify-end">
+            <button onClick={() => abrirFormulario(null, tabActivo === 'comida' ? 'alimento' : 'medicamento')} className="w-14 h-14 bg-gray-900 text-white rounded-full shadow-lg flex items-center justify-center active:scale-95"><Plus size={24} strokeWidth={3} /></button>
+          </div>
+        </div>
+      )}
+
       {mostrarQRCompartir && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMostrarQRCompartir(false)}></div>
           <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative z-10 animate-in zoom-in-95 duration-300 text-center flex flex-col items-center">
             <button onClick={() => setMostrarQRCompartir(false)} className="absolute top-4 right-4 bg-gray-100 p-2 rounded-full text-gray-500 hover:bg-gray-200"><X size={18}/></button>
             <h2 className="text-2xl font-black text-gray-900 italic mb-2">Invitar Familiar</h2>
-            <p className="text-gray-500 text-sm mb-6 leading-relaxed">Que escaneen este código desde la pantalla inicial para entrar juntos al hogar.</p>
             <div className="bg-white p-4 rounded-3xl shadow-sm border-4 border-gray-50 mb-4 inline-block flex items-center justify-center min-h-[180px] min-w-[180px]">
               <img src={qrUrl} alt="QR Familiar" className="w-[180px] h-[180px]" />
             </div>
@@ -536,7 +498,6 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* FORMULARIO DINÁMICO (CREAR / EDITAR) */}
       {mostrarForm && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMostrarForm(false)}></div>
@@ -545,43 +506,32 @@ const Dashboard = () => {
               <h2 className="text-2xl font-black italic">{editandoId ? 'Editar Elemento' : 'Añadir al Hogar'}</h2>
               <button onClick={() => setMostrarForm(false)} className="bg-gray-100 p-2 rounded-full"><X size={18}/></button>
             </div>
-            
             {!editandoId && (
               <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
                 <button onClick={() => setNuevoItem({...nuevoItem, tipo: 'alimento'})} className={`flex-1 py-2 text-[11px] font-black rounded-lg ${nuevoItem.tipo === 'alimento' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}>COMIDA</button>
                 <button onClick={() => setNuevoItem({...nuevoItem, tipo: 'medicamento'})} className={`flex-1 py-2 text-[11px] font-black rounded-lg ${nuevoItem.tipo === 'medicamento' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>BOTIQUÍN</button>
               </div>
             )}
-
             <div className="space-y-4">
-              <input type="text" placeholder="Nombre (vendas, leche...)" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold" value={nuevoItem.nombre} onChange={(e) => setNuevoItem({...nuevoItem, nombre: e.target.value})} />
-              
+              <input type="text" placeholder="Nombre" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold" value={nuevoItem.nombre} onChange={(e) => setNuevoItem({...nuevoItem, nombre: e.target.value})} />
               <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-2xl border-2 border-transparent">
                  <input type="checkbox" id="noVence" checked={nuevoItem.sinFecha} onChange={(e) => setNuevoItem({...nuevoItem, sinFecha: e.target.checked})} className="w-5 h-5 accent-blue-600" />
-                 <label htmlFor="noVence" className="text-sm font-bold text-gray-700 cursor-pointer flex items-center gap-2">No tiene fecha de vencimiento <Infinity size={16} className="text-gray-400"/></label>
+                 <label htmlFor="noVence" className="text-sm font-bold text-gray-700 cursor-pointer">Sin vencimiento</label>
               </div>
-
               {!nuevoItem.sinFecha && (
                 <div className="animate-in slide-in-from-top-1">
-                   <label className="text-[10px] font-black text-gray-400 uppercase ml-2 mb-1 block">Vencimiento</label>
                    <input type="date" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl font-bold uppercase" value={nuevoItem.fecha} onChange={(e) => setNuevoItem({...nuevoItem, fecha: e.target.value})} />
                 </div>
               )}
-
               {nuevoItem.tipo === 'medicamento' && !nuevoItem.sinFecha && (
-                <div className="animate-in fade-in bg-indigo-50 p-4 rounded-2xl border border-indigo-100 space-y-3">
-                   <div className="flex items-center gap-2 mb-1"><Clock size={16} className="text-indigo-500" /><span className="text-[11px] font-black uppercase text-indigo-800 tracking-widest">Plan de Tratamiento</span></div>
+                <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 space-y-3 animate-in fade-in">
                    <div className="flex gap-4">
-                      <div className="flex-1"><label className="text-[10px] font-black text-indigo-400 uppercase ml-2 mb-1 block">Cada (Hrs)</label><select className="w-full p-3 bg-white rounded-xl font-bold" value={nuevoItem.frecuencia} onChange={(e) => setNuevoItem({...nuevoItem, frecuencia: e.target.value})}><option value="Sin Alarma">Sin Alarma</option><option value="4">4h</option><option value="8">8h</option><option value="12">12h</option><option value="24">24h</option></select></div>
+                      <div className="flex-1"><label className="text-[10px] font-black text-indigo-400 uppercase ml-2 mb-1 block">Cada (Hrs)</label><select className="w-full p-3 bg-white rounded-xl font-bold" value={nuevoItem.frecuencia} onChange={(e) => setNuevoItem({...nuevoItem, frecuencia: e.target.value})}><option value="4">4h</option><option value="8">8h</option><option value="12">12h</option><option value="24">24h</option></select></div>
                       <div className="flex-1"><label className="text-[10px] font-black text-indigo-400 uppercase ml-2 mb-1 block">1ª Toma</label><input type="time" className="w-full p-3 bg-white rounded-xl font-bold" value={nuevoItem.horaInicio} onChange={(e) => setNuevoItem({...nuevoItem, horaInicio: e.target.value})} /></div>
                    </div>
-                   <div className="flex items-center gap-4"><div className="flex-1"><label className="text-[10px] font-black text-indigo-400 uppercase ml-2 block">Días</label><input type="number" disabled={nuevoItem.esSiempre} className="w-full p-3 bg-white rounded-xl font-bold" value={nuevoItem.duracion} onChange={(e) => setNuevoItem({...nuevoItem, duracion: e.target.value})} /></div><label className="flex items-center gap-2 font-bold text-xs text-indigo-600 mt-4"><input type="checkbox" checked={nuevoItem.esSiempre} onChange={(e) => setNuevoItem({...nuevoItem, esSiempre: e.target.checked})} /> Siempre</label></div>
                 </div>
               )}
-
-              <button disabled={!nuevoItem.nombre || (!nuevoItem.sinFecha && !nuevoItem.fecha)} onClick={agregarOEditarItem} className={`w-full text-white font-black p-5 rounded-2xl shadow-xl disabled:opacity-30 active:scale-95 transition-all ${nuevoItem.tipo === 'alimento' ? 'bg-gray-900' : 'bg-indigo-600'}`}>
-                {editandoId ? 'Guardar Cambios' : 'Guardar'}
-              </button>
+              <button disabled={!nuevoItem.nombre || (!nuevoItem.sinFecha && !nuevoItem.fecha)} onClick={agregarOEditarItem} className={`w-full text-white font-black p-5 rounded-2xl shadow-xl active:scale-95 transition-all ${nuevoItem.tipo === 'alimento' ? 'bg-gray-900' : 'bg-indigo-600'}`}>Guardar</button>
             </div>
           </div>
         </div>
