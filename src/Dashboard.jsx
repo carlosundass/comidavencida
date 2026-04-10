@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, X, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing, Bell, Search, BookOpen, ThumbsUp, AlertTriangle, Menu, Infinity, Globe, FileText } from 'lucide-react';
+import { Trash2, X, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing, Bell, Search, BookOpen, ThumbsUp, AlertTriangle, Menu, Infinity, Globe, FileText, Gift } from 'lucide-react';
 import Scanner from './Scanner';
 // IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
@@ -43,7 +43,6 @@ const Dashboard = () => {
   const [cargandoAuth, setCargandoAuth] = useState(false);
   const [tabActivo, setTabActivo] = useState('comida');
 
-  // ESTADOS PARA EL QR Y NOTIFICACIONES
   const [mostrarQRCompartir, setMostrarQRCompartir] = useState(false);
   const [mostrarScannerLogin, setMostrarScannerLogin] = useState(false);
   const [permisoNotif, setPermisoNotif] = useState('Notification' in window ? Notification.permission : 'denied');
@@ -111,20 +110,14 @@ const Dashboard = () => {
     } else { setErrorAuth('Ese código QR no es una invitación de Que No Se Venza.'); }
   };
 
-  // ==========================================
-  // LÓGICA DE DATOS Y ALARMAS
-  // ==========================================
   const [productos, setProductos] = useState([]);
   const [medicamentos, setMedicamentos] = useState([]);
   const [compras, setCompras] = useState([]);
-  
   const [busqueda, setBusqueda] = useState('');
   const [itemABorrar, setItemABorrar] = useState(null); 
-  
   const [mostrarForm, setMostrarForm] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
   const [alarmasEnviadas, setAlarmasEnviadas] = useState(new Set());
-  
   const [nuevoItem, setNuevoItem] = useState({ 
     tipo: 'alimento', nombre: '', fecha: '', sinFecha: false, dosis: '', frecuencia: '8', horaInicio: '08:00', duracion: '7', esSiempre: false
   });
@@ -156,7 +149,7 @@ const Dashboard = () => {
           const idNotificacion = `${m.id}-${msProximaToma}`;
           if (!alarmasEnviadas.has(idNotificacion)) {
             if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification('¡Hora de tu medicina!', { body: `Toca: ${m.nombre} (${m.dosis || 'revisa la app'})`, icon: 'https://cdn-icons-png.flaticon.com/512/883/883407.png', vibrate: [200, 100, 200, 100, 200] });
+              new Notification('¡Hora de tu medicina!', { body: `Toca: ${m.nombre} (${m.dosis || 'revisa la app'})`, icon: 'https://cdn-icons-png.flaticon.com/512/883/883407.png' });
             }
             setAlarmasEnviadas(prev => new Set(prev).add(idNotificacion));
           }
@@ -193,14 +186,9 @@ const Dashboard = () => {
   const agregarOEditarItem = async () => {
     if (!nuevoItem.nombre) return;
     const coleccionDestino = nuevoItem.tipo === 'alimento' ? 'items' : 'medicamentos';
-    const datos = { 
-      nombre: nuevoItem.nombre, 
-      fecha: nuevoItem.sinFecha ? '' : nuevoItem.fecha, 
-      sinFecha: nuevoItem.sinFecha,
-      actualizadoEn: new Date().getTime() 
-    };
+    const datos = { nombre: nuevoItem.nombre, fecha: nuevoItem.sinFecha ? '' : nuevoItem.fecha, sinFecha: nuevoItem.sinFecha, actualizadoEn: new Date().getTime() };
     if (nuevoItem.tipo === 'medicamento') {
-      datos.dosis = nuevoItem.dosis || ''; datos.frecuencia = nuevoItem.frecuencia; datos.horaInicio = nuevoItem.horaInicio; datos.duracion = nuevoItem.duracion; datos.esSiempre = nuevoItem.esSiempre;
+      datos.dosis = nuevoItem.dosis || ''; datos.frecuencia = nuevoItem.frecuencia; datos.horaInicio = nuevoItem.horaInicio;
       if (!editandoId) datos.ultimaToma = null; 
     }
     if (editandoId) await updateDoc(doc(db, 'despensas', usuarioActual.id, coleccionDestino, editandoId), datos);
@@ -209,7 +197,6 @@ const Dashboard = () => {
   };
 
   const solicitarBorrado = (item, coleccion, tipo) => { setItemABorrar({ id: item.id, nombre: item.nombre, coleccion, tipo }); };
-
   const confirmarBorradoEstadistica = async (estado) => {
     if (!itemABorrar) return;
     await addDoc(collection(db, 'despensas', usuarioActual.id, 'historial'), { nombre: itemABorrar.nombre, tipo: itemABorrar.tipo, resultado: estado, fecha: new Date().getTime() });
@@ -236,18 +223,16 @@ const Dashboard = () => {
   const medicamentosFiltrados = medicamentos.filter(m => m.nombre.toLowerCase().includes(busqueda.toLowerCase()));
 
   // ==========================================
-  // RENDER: PANTALLA LOGIN (PÚBLICA)
+  // RENDER: PANTALLA LOGIN
   // ==========================================
   if (!usuarioActual) {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative font-sans">
-        
         <div className="absolute top-0 left-0 w-full p-6 flex justify-start z-10">
           <a href="https://quenosevenza.cl" className="text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-blue-600 transition-colors bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
             ← Volver a la Web
           </a>
         </div>
-
         <div className="flex-1 flex flex-col justify-center items-center px-6">
           <div className="w-full max-w-sm mt-10 animate-in fade-in duration-500">
             <div className="text-center mb-10">
@@ -278,7 +263,6 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-
         <div className="p-6 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
           <div className="flex justify-center gap-4 mb-3 flex-wrap">
             <a href="https://quenosevenza.cl/blog" className="hover:text-blue-600">Blog</a>
@@ -289,12 +273,12 @@ const Dashboard = () => {
           </div>
           <p>© 2026 Que No Se Venza</p>
         </div>
-
         {mostrarScannerLogin && <Scanner onScan={procesarQRLogin} onClose={() => setMostrarScannerLogin(false)} />}
       </div>
     );
   }
 
+  // --- LOGICA QR ---
   const qrData = `QNV-LOGIN|${usuarioActual?.id || 'error'}|${usuarioActual?.pin || '0000'}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrData)}`;
 
@@ -327,23 +311,23 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* ==========================================
-            ZONA DE REGALO MENSUAL (EXCLUSIVO)
-           ========================================== */}
+        {/* --- BARRA DE REGALO NUEVA (SUTIL) --- */}
         {tabActivo === 'comida' && !busqueda && (
-          <div className="mb-8 animate-in zoom-in-95 duration-500">
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2.5rem] p-6 text-white shadow-xl relative overflow-hidden">
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-blue-400/20 rounded-full blur-xl"></div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="bg-white/20 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Beneficio Exclusivo Abril</span>
+          <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-700">
+            <a href="https://tuweb.cl/wp-content/uploads/2026/04/guia-limpieza-abril.pdf" target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between bg-blue-50 border border-blue-100 p-4 rounded-3xl active:scale-[0.98] transition-all">
+              <div className="flex items-center gap-4">
+                <div className="bg-white p-2.5 rounded-2xl shadow-sm text-blue-600 group-hover:scale-110 transition-transform">
+                  <Gift size={20} />
                 </div>
-                <h3 className="text-xl font-black italic leading-tight mb-2">🎁 Tu Regalo: <br/>Guía de Limpieza Pro</h3>
-                <p className="text-blue-100 text-xs font-medium mb-4 leading-relaxed">Aprende a organizar tu refrigerador para que nada se venza y ahorres más dinero.</p>
-                <a href="https://tuweb.cl/wp-content/uploads/2026/04/guia-limpieza-abril.pdf" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-white text-blue-600 font-black px-6 py-3 rounded-2xl text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-colors">Descargar PDF <ArrowRight size={14} /></a>
+                <div>
+                  <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-none mb-1">Regalo de Abril</p>
+                  <h3 className="text-sm font-black text-blue-900">Guía Pro: Limpieza de Nevera</h3>
+                </div>
               </div>
-            </div>
+              <div className="bg-blue-600 p-2 rounded-xl text-white shadow-md shadow-blue-200">
+                <ArrowRight size={16} />
+              </div>
+            </a>
           </div>
         )}
 
