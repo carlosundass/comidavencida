@@ -287,7 +287,7 @@ const Dashboard = () => {
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative font-sans">
         <div className="absolute top-0 left-0 w-full p-6 flex justify-start z-10">
           <a href="https://quenosevenza.cl" className="text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-blue-600 transition-colors bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
-            ← Volver a la Web
+            ← Volver a la Webb
           </a>
         </div>
         <div className="flex-1 flex flex-col justify-center items-center px-6">
