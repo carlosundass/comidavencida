@@ -387,7 +387,7 @@ const Dashboard = () => {
                   </div>
                   <div>
                     <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest leading-none mb-1">Regalo de Abril</p>
-                    <h3 className="text-sm font-black text-gray-900 leading-tight">Guía Pro: Limpieza de Nevera</h3>
+                    <h3 className="text-sm font-black text-gray-900 leading-tight">Guía Pro: Limpieza de Refrigerador</h3>
                   </div>
                 </div>
                 <div className="bg-blue-100 p-2 rounded-lg text-blue-600 flex items-center justify-center">
