@@ -6,6 +6,52 @@ import { db } from './firebase';
 import { collection, doc, setDoc, getDoc, addDoc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 // ==========================================
+// INYECCIÓN DE CSS PARA LA ANIMACIÓN DEL REGALO
+// ==========================================
+const estilocss = `
+  @keyframes qnvGradientPulse {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .qnv-gift-card {
+    position: relative;
+    background: white;
+    border-radius: 2rem;
+    padding: 1px; /* Espacio para el borde animado */
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  .qnv-gift-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(115deg, #2563eb, #3b82f6, #60a5fa, #4f46e5);
+    background-size: 300% 300%;
+    animation: qnvGradientPulse 3s infinite linear;
+    opacity: 0.7;
+    z-index: 0;
+  }
+  .qnv-gift-content {
+    position: relative;
+    z-index: 10;
+    background: white;
+    border-radius: 1.9rem; /* Un poco menor que la tarjeta para el borde */
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    items-center;
+    transition: background-color 0.3s;
+  }
+  .qnv-gift-card:hover .qnv-gift-content {
+    background: #f0f7ff; /* Fondo azul clarito en hover */
+  }
+`;
+
+// ==========================================
 // COMPONENTE SEGURO PARA ADSENSE EN REACT
 // ==========================================
 const AdSenseBanner = ({ adSlot }) => {
@@ -28,6 +74,17 @@ const AdSenseBanner = ({ adSlot }) => {
 };
 
 const Dashboard = () => {
+  // Inyectar el CSS dinámicamente al cargar el componente
+  useEffect(() => {
+    const styleSheet = document.createElement("style");
+    styleSheet.type = "text/css";
+    styleSheet.innerText = estilocss;
+    document.head.appendChild(styleSheet);
+    return () => {
+      document.head.removeChild(styleSheet); // Limpiar al desmontar
+    };
+  }, []);
+
   // ==========================================
   // ESTADOS PRINCIPALES Y AUTENTICACIÓN
   // ==========================================
@@ -223,7 +280,7 @@ const Dashboard = () => {
   const medicamentosFiltrados = medicamentos.filter(m => m.nombre.toLowerCase().includes(busqueda.toLowerCase()));
 
   // ==========================================
-  // RENDER: LOGIN
+  // RENDER: PANTALLA LOGIN
   // ==========================================
   if (!usuarioActual) {
     return (
@@ -266,7 +323,7 @@ const Dashboard = () => {
         <div className="p-6 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
           <div className="flex justify-center gap-4 mb-3 flex-wrap">
             <a href="https://quenosevenza.cl/blog" className="hover:text-blue-600">Blog</a>
-            <a href="https://quenosevenza.cl/sobre-nosotros" className="hover:text-blue-600">Nuestra Misión</a>
+            <a href="https://quenosevenza.cl/sobre-nosotros" className="hover:text-blue-600">Misión</a>
             <a href="https://quenosevenza.cl/politica-de-privacidad" className="hover:text-blue-600">Privacidad</a>
             <a href="https://quenosevenza.cl/terminos-y-condiciones" className="hover:text-blue-600">Términos</a>
             <a href="https://quenosevenza.cl/contacto" className="hover:text-blue-600">Contacto</a>
@@ -312,21 +369,30 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* --- BARRA DE REGALO --- */}
+        {/* ==========================================
+            BARRA DE REGALO MENSUAL (DISEÑO LLAMATIVO Y NO INVASIVO)
+           ========================================== */}
         {tabActivo === 'comida' && !busqueda && (
-          <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-700">
-            <a href="https://tuweb.cl/wp-content/uploads/2026/04/guia-limpieza-abril.pdf" target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between bg-blue-50 border border-blue-100 p-4 rounded-3xl active:scale-[0.98] transition-all">
-              <div className="flex items-center gap-4">
-                <div className="bg-white p-2.5 rounded-2xl shadow-sm text-blue-600">
-                  <Gift size={20} />
+          <div className="mb-8 animate-in zoom-in-95 duration-500">
+            <a 
+              href="https://tuweb.cl/wp-content/uploads/2026/04/guia-limpieza-abril.pdf" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="qnv-gift-card block shadow-lg active:scale-[0.98]"
+            >
+              <div className="qnv-gift-content">
+                <div className="flex items-center gap-4">
+                  <div className="bg-blue-600 p-3 rounded-xl text-white shadow-sm flex items-center justify-center">
+                    <Gift size={18} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest leading-none mb-1">Regalo de Abril</p>
+                    <h3 className="text-sm font-black text-gray-900 leading-tight">Guía Pro: Limpieza de Nevera</h3>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-none mb-1">Regalo de Abril</p>
-                  <h3 className="text-sm font-black text-blue-900">Guía Pro: Limpieza de Nevera</h3>
+                <div className="bg-blue-100 p-2 rounded-lg text-blue-600 flex items-center justify-center">
+                  <ArrowRight size={16} />
                 </div>
-              </div>
-              <div className="bg-blue-600 p-2 rounded-xl text-white shadow-md shadow-blue-200">
-                <ArrowRight size={16} />
               </div>
             </a>
           </div>
@@ -372,7 +438,6 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* El resto del código (medicamentos, compras, modales) se mantiene exactamente igual a tu base */}
         {tabActivo === 'medicamentos' && (
           <div className="animate-in fade-in duration-300">
             <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Botiquín</h2>
@@ -453,7 +518,44 @@ const Dashboard = () => {
         </div>
       </nav>
 
-      {/* Modales y resto del formulario se mantienen iguales... */}
+      {/* Papelera inteligente */}
+      {itemABorrar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-300">
+            <h3 className="text-2xl font-black italic text-gray-900 mb-2">¿Qué pasó con esto?</h3>
+            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 mb-6 font-black text-lg text-gray-800">{itemABorrar.nombre}</div>
+            <div className="flex flex-col gap-3">
+              <button onClick={() => confirmarBorradoEstadistica('consumido')} className="w-full bg-green-100 text-green-700 font-black p-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 border border-green-200"><ThumbsUp size={20}/> Consumido / Usado</button>
+              <button onClick={() => confirmarBorradoEstadistica('basura')} className="w-full bg-red-100 text-red-700 font-black p-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 border border-red-200"><AlertTriangle size={20}/> Se echó a perder</button>
+              <button onClick={() => setItemABorrar(null)} className="mt-4 text-gray-400 font-bold text-xs uppercase tracking-widest p-2">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tabActivo !== 'compras' && (
+        <div className="fixed bottom-[80px] left-0 right-0 p-6 flex flex-col gap-3 pointer-events-none z-30">
+          <div className="pointer-events-auto flex justify-end">
+            <button onClick={() => abrirFormulario(null, tabActivo === 'comida' ? 'alimento' : 'medicamento')} className="w-14 h-14 bg-gray-900 text-white rounded-full shadow-lg flex items-center justify-center active:scale-95"><Plus size={24} strokeWidth={3} /></button>
+          </div>
+        </div>
+      )}
+
+      {mostrarQRCompartir && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMostrarQRCompartir(false)}></div>
+          <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative z-10 animate-in zoom-in-95 duration-300 text-center flex flex-col items-center">
+            <button onClick={() => setMostrarQRCompartir(false)} className="absolute top-4 right-4 bg-gray-100 p-2 rounded-full text-gray-500 hover:bg-gray-200"><X size={18}/></button>
+            <h2 className="text-2xl font-black text-gray-900 italic mb-2">Invitar Familiar</h2>
+            <div className="bg-white p-4 rounded-3xl shadow-sm border-4 border-gray-50 mb-4 inline-block flex items-center justify-center min-h-[180px] min-w-[180px]">
+              <img src={qrUrl} alt="QR Familiar" className="w-[180px] h-[180px]" />
+            </div>
+            <p className="text-blue-600 font-black text-xl uppercase tracking-widest mt-2">{usuarioActual.id}</p>
+            <p className="text-gray-400 font-black tracking-[0.5em] text-xs mt-1">PIN: {usuarioActual.pin || '****'}</p>
+          </div>
+        </div>
+      )}
+
       {mostrarForm && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMostrarForm(false)}></div>
@@ -488,21 +590,6 @@ const Dashboard = () => {
                 </div>
               )}
               <button disabled={!nuevoItem.nombre || (!nuevoItem.sinFecha && !nuevoItem.fecha)} onClick={agregarOEditarItem} className={`w-full text-white font-black p-5 rounded-2xl shadow-xl active:scale-95 transition-all ${nuevoItem.tipo === 'alimento' ? 'bg-gray-900' : 'bg-indigo-600'}`}>Guardar</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Papelera inteligente */}
-      {itemABorrar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-300">
-            <h3 className="text-2xl font-black italic text-gray-900 mb-2">¿Qué pasó con esto?</h3>
-            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 mb-6 font-black text-lg text-gray-800">{itemABorrar.nombre}</div>
-            <div className="flex flex-col gap-3">
-              <button onClick={() => confirmarBorradoEstadistica('consumido')} className="w-full bg-green-100 text-green-700 font-black p-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 border border-green-200"><ThumbsUp size={20}/> Consumido / Usado</button>
-              <button onClick={() => confirmarBorradoEstadistica('basura')} className="w-full bg-red-100 text-red-700 font-black p-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 border border-red-200"><AlertTriangle size={20}/> Se echó a perder</button>
-              <button onClick={() => setItemABorrar(null)} className="mt-4 text-gray-400 font-bold text-xs uppercase tracking-widest p-2">Cancelar</button>
             </div>
           </div>
         </div>
