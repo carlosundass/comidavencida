@@ -376,9 +376,7 @@ const Dashboard = () => {
           <div className="mb-8 animate-in zoom-in-95 duration-500">
   
 <a 
-  href="https://quenosevenza.cl/regalo/" // Tu nueva landing
-  target="_blank" 
-  rel="noopener noreferrer"
+  href="https://quenosevenza.cl/regalo/"
   className="qnv-gift-card block shadow-lg"
 >
               <div className="qnv-gift-content">
