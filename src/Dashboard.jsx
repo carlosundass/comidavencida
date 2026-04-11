@@ -374,7 +374,7 @@ const Dashboard = () => {
            ========================================== */}
         {tabActivo === 'comida' && !busqueda && (
           <div className="mb-8 animate-in zoom-in-95 duration-500">
-            // En Dashboard.jsx
+  
 <a 
   href="https://quenosevenza.cl/regalo/" // Tu nueva landing
   target="_blank" 
