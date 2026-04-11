@@ -374,12 +374,13 @@ const Dashboard = () => {
            ========================================== */}
         {tabActivo === 'comida' && !busqueda && (
           <div className="mb-8 animate-in zoom-in-95 duration-500">
-            <a 
-              href="https://tuweb.cl/wp-content/uploads/2026/04/guia-limpieza-abril.pdf" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="qnv-gift-card block shadow-lg active:scale-[0.98]"
-            >
+            // En Dashboard.jsx
+<a 
+  href="https://quenosevenza.cl/regalo/" // Tu nueva landing
+  target="_blank" 
+  rel="noopener noreferrer"
+  className="qnv-gift-card block shadow-lg"
+>
               <div className="qnv-gift-content">
                 <div className="flex items-center gap-4">
                   <div className="bg-blue-600 p-3 rounded-xl text-white shadow-sm flex items-center justify-center">
