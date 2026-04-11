@@ -43,7 +43,7 @@ const estilocss = `
     padding: 1rem;
     display: flex;
     justify-content: space-between;
-    items-center;
+    align-items: center;
     transition: background-color 0.3s;
   }
   .qnv-gift-card:hover .qnv-gift-content {
@@ -104,6 +104,11 @@ const Dashboard = () => {
   const [mostrarScannerLogin, setMostrarScannerLogin] = useState(false);
   const [permisoNotif, setPermisoNotif] = useState('Notification' in window ? Notification.permission : 'denied');
 
+  // NUEVOS ESTADOS PARA SUGERENCIAS
+  const [mostrarFeedback, setMostrarFeedback] = useState(false);
+  const [mensajeFeedback, setMensajeFeedback] = useState('');
+  const [enviandoFeedback, setEnviandoFeedback] = useState(false);
+
   const pedirPermisoNotificaciones = async () => {
     if (!('Notification' in window)) { alert("Este navegador no soporta notificaciones."); return; }
     if (Notification.permission !== 'granted') {
@@ -114,6 +119,30 @@ const Dashboard = () => {
       }
     } else {
        new Notification("Prueba de sonido", { body: "Las notificaciones están funcionando correctamente.", icon: "https://cdn-icons-png.flaticon.com/512/883/883407.png" });
+    }
+  };
+
+  // NUEVA FUNCIÓN PARA ENVIAR FEEDBACK (OPCIÓN B)
+  const enviarFeedback = async () => {
+    if (!mensajeFeedback.trim()) return;
+    setEnviandoFeedback(true);
+    try {
+      await fetch("https://formsubmit.co/ajax/hola@quenosevenza.cl", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({
+          Hogar: usuarioActual.id,
+          Mensaje: mensajeFeedback,
+          _subject: "💡 Sugerencia desde App: " + usuarioActual.id
+        })
+      });
+      alert("¡Gracias! Tu sugerencia fue enviada con éxito.");
+      setMensajeFeedback('');
+      setMostrarFeedback(false);
+    } catch (e) {
+      alert("Error al enviar. Intenta de nuevo.");
+    } finally {
+      setEnviandoFeedback(false);
     }
   };
 
@@ -350,7 +379,9 @@ const Dashboard = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* BOTÓN VOLVER A LA WEB (LOGEADO) */}
+          {/* CAMBIO 1: AGREGAR BOTÓN DE SUGERENCIAS */}
+          <button onClick={() => setMostrarFeedback(true)} className="bg-white border border-gray-200 p-2.5 rounded-full text-amber-500 hover:bg-amber-50 shadow-sm" title="Sugerencias"><BookOpen size={18} /></button>
+          
           <a href="https://quenosevenza.cl" className="bg-white border border-gray-200 p-2.5 rounded-full text-blue-600 hover:bg-blue-50 shadow-sm" title="Ir a la Web Oficial">
             <Globe size={18} />
           </a>
@@ -374,13 +405,8 @@ const Dashboard = () => {
            ========================================== */}
         {tabActivo === 'comida' && !busqueda && (
           <div className="mb-8 animate-in zoom-in-95 duration-500">
-  
-<a 
-  href="https://quenosevenza.cl/regalo/" // Tu nueva landing
-  target="_blank" 
-  rel="noopener noreferrer"
-  className="qnv-gift-card block shadow-lg"
->
+            {/* CAMBIO 2: ELIMINAR target="_blank" PARA QUE ABRA EN EL MISMO LUGAR */}
+            <a href="https://quenosevenza.cl/regalo/" className="qnv-gift-card block shadow-lg">
               <div className="qnv-gift-content">
                 <div className="flex items-center gap-4">
                   <div className="bg-blue-600 p-3 rounded-xl text-white shadow-sm flex items-center justify-center">
@@ -591,6 +617,32 @@ const Dashboard = () => {
                 </div>
               )}
               <button disabled={!nuevoItem.nombre || (!nuevoItem.sinFecha && !nuevoItem.fecha)} onClick={agregarOEditarItem} className={`w-full text-white font-black p-5 rounded-2xl shadow-xl active:scale-95 transition-all ${nuevoItem.tipo === 'alimento' ? 'bg-gray-900' : 'bg-indigo-600'}`}>Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE SUGERENCIAS (NUEVO) */}
+      {mostrarFeedback && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center px-6 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95">
+            <h3 className="text-2xl font-black italic text-gray-900 mb-2">¿Cómo mejorar? 💡</h3>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Tu idea puede ser la próxima función.</p>
+            <textarea 
+              className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-sm h-32 resize-none"
+              placeholder="Cuéntanos tu sugerencia..."
+              value={mensajeFeedback}
+              onChange={(e) => setMensajeFeedback(e.target.value)}
+            />
+            <div className="flex flex-col gap-3 mt-6">
+              <button 
+                onClick={enviarFeedback}
+                disabled={enviandoFeedback || !mensajeFeedback.trim()}
+                className="w-full bg-blue-600 text-white font-black p-4 rounded-2xl active:scale-95 disabled:opacity-50 transition-all"
+              >
+                {enviandoFeedback ? 'Enviando...' : 'Enviar Sugerencia'}
+              </button>
+              <button onClick={() => setMostrarFeedback(false)} className="text-gray-400 font-bold text-[10px] uppercase tracking-widest p-2">Cerrar</button>
             </div>
           </div>
         </div>
