@@ -205,8 +205,10 @@ const Dashboard = () => {
   const [mostrarForm, setMostrarForm] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
   const [alarmasEnviadas, setAlarmasEnviadas] = useState(new Set());
+  
+  // Modificado el valor inicial de frecuencia a "Sin Alarma"
   const [nuevoItem, setNuevoItem] = useState({ 
-    tipo: 'alimento', nombre: '', fecha: '', sinFecha: false, dosis: '', frecuencia: '8', horaInicio: '08:00', duracion: '7', esSiempre: false
+    tipo: 'alimento', nombre: '', fecha: '', sinFecha: false, dosis: '', frecuencia: 'Sin Alarma', horaInicio: '08:00', duracion: '7', esSiempre: false
   });
 
   useEffect(() => {
@@ -262,10 +264,10 @@ const Dashboard = () => {
   const abrirFormulario = (itemToEdit = null, tipoPredefinido = 'alimento') => {
     if (itemToEdit) {
       setEditandoId(itemToEdit.id);
-      setNuevoItem({ tipo: tipoPredefinido, nombre: itemToEdit.nombre || '', fecha: itemToEdit.fecha || '', sinFecha: itemToEdit.sinFecha || false, dosis: itemToEdit.dosis || '', frecuencia: itemToEdit.frecuencia || '8', horaInicio: itemToEdit.horaInicio || '08:00', duracion: itemToEdit.duracion || '7', esSiempre: itemToEdit.esSiempre || false });
+      setNuevoItem({ tipo: tipoPredefinido, nombre: itemToEdit.nombre || '', fecha: itemToEdit.fecha || '', sinFecha: itemToEdit.sinFecha || false, dosis: itemToEdit.dosis || '', frecuencia: itemToEdit.frecuencia || 'Sin Alarma', horaInicio: itemToEdit.horaInicio || '08:00', duracion: itemToEdit.duracion || '7', esSiempre: itemToEdit.esSiempre || false });
     } else {
       setEditandoId(null);
-      setNuevoItem({ tipo: tipoPredefinido, nombre: '', fecha: '', sinFecha: false, dosis: '', frecuencia: '8', horaInicio: '08:00', duracion: '7', esSiempre: false });
+      setNuevoItem({ tipo: tipoPredefinido, nombre: '', fecha: '', sinFecha: false, dosis: '', frecuencia: 'Sin Alarma', horaInicio: '08:00', duracion: '7', esSiempre: false });
     }
     setMostrarForm(true);
   };
@@ -315,7 +317,6 @@ const Dashboard = () => {
   if (!usuarioActual) {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex flex-col font-sans">
-        {/* CORRECCIÓN: Se quitó position absolute para que no se monte sobre el logo */}
         <div className="w-full p-6 flex justify-start z-10">
           <a href="https://quenosevenza.cl" className="text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-blue-600 transition-colors bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
             ← Volver a la Web
@@ -497,7 +498,7 @@ const Dashboard = () => {
                         <div className="flex items-center gap-3">
                           <Clock size={16} className={alarmaSonando ? 'text-white' : 'text-indigo-500'} />
                           <div>
-                            <p className={`text-[11px] font-black leading-tight ${alarmaSonando ? 'text-white' : 'text-gray-800'}`}>Dosis: {m.dosis}</p>
+                            {m.dosis && <p className={`text-[11px] font-black leading-tight ${alarmaSonando ? 'text-white' : 'text-gray-800'}`}>Dosis: {m.dosis}</p>}
                             <p className={`text-[9px] font-bold uppercase tracking-widest ${alarmaSonando ? 'text-red-100' : 'text-gray-500'}`}>Cada {m.frecuencia}h</p>
                           </div>
                         </div>
@@ -609,21 +610,48 @@ const Dashboard = () => {
               </div>
             )}
             <div className="space-y-4">
-              <input type="text" placeholder="Nombre" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold" value={nuevoItem.nombre} onChange={(e) => setNuevoItem({...nuevoItem, nombre: e.target.value})} />
+              <input type="text" placeholder="Nombre (Ej: Paracetamol)" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold" value={nuevoItem.nombre} onChange={(e) => setNuevoItem({...nuevoItem, nombre: e.target.value})} />
+              
+              {/* CAMPO DE DOSIS: Solo aparece si es medicamento */}
+              {nuevoItem.tipo === 'medicamento' && (
+                <div>
+                   <input type="text" placeholder="Dosis (Ej: 1 pastilla, 10ml) - Opcional" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-sm" value={nuevoItem.dosis} onChange={(e) => setNuevoItem({...nuevoItem, dosis: e.target.value})} />
+                </div>
+              )}
+
               <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-2xl border-2 border-transparent">
                  <input type="checkbox" id="noVence" checked={nuevoItem.sinFecha} onChange={(e) => setNuevoItem({...nuevoItem, sinFecha: e.target.checked})} className="w-5 h-5 accent-blue-600" />
                  <label htmlFor="noVence" className="text-sm font-bold text-gray-700 cursor-pointer">Sin vencimiento</label>
               </div>
+              
               {!nuevoItem.sinFecha && (
                 <div className="animate-in slide-in-from-top-1">
                    <input type="date" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl font-bold uppercase" value={nuevoItem.fecha} onChange={(e) => setNuevoItem({...nuevoItem, fecha: e.target.value})} />
                 </div>
               )}
+
+              {/* SECCIÓN DE ALERTAS */}
               {nuevoItem.tipo === 'medicamento' && !nuevoItem.sinFecha && (
                 <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 space-y-3 animate-in fade-in">
                    <div className="flex gap-4">
-                      <div className="flex-1"><label className="text-[10px] font-black text-indigo-400 uppercase ml-2 mb-1 block">Cada (Hrs)</label><select className="w-full p-3 bg-white rounded-xl font-bold" value={nuevoItem.frecuencia} onChange={(e) => setNuevoItem({...nuevoItem, frecuencia: e.target.value})}><option value="4">4h</option><option value="8">8h</option><option value="12">12h</option><option value="24">24h</option></select></div>
-                      <div className="flex-1"><label className="text-[10px] font-black text-indigo-400 uppercase ml-2 mb-1 block">1ª Toma</label><input type="time" className="w-full p-3 bg-white rounded-xl font-bold" value={nuevoItem.horaInicio} onChange={(e) => setNuevoItem({...nuevoItem, horaInicio: e.target.value})} /></div>
+                      <div className="flex-1">
+                        <label className="text-[10px] font-black text-indigo-400 uppercase ml-2 mb-1 block">Alertas</label>
+                        <select className="w-full p-3 bg-white rounded-xl font-bold text-sm outline-none" value={nuevoItem.frecuencia} onChange={(e) => setNuevoItem({...nuevoItem, frecuencia: e.target.value})}>
+                          <option value="Sin Alarma">Sin alertas</option>
+                          <option value="4">Cada 4 Hrs</option>
+                          <option value="8">Cada 8 Hrs</option>
+                          <option value="12">Cada 12 Hrs</option>
+                          <option value="24">Cada 24 Hrs</option>
+                        </select>
+                      </div>
+                      
+                      {/* Oculta la hora de la toma si eliges "Sin alertas" */}
+                      {nuevoItem.frecuencia !== 'Sin Alarma' && (
+                        <div className="flex-1 animate-in fade-in">
+                          <label className="text-[10px] font-black text-indigo-400 uppercase ml-2 mb-1 block">1ª Toma</label>
+                          <input type="time" className="w-full p-3 bg-white rounded-xl font-bold text-sm outline-none" value={nuevoItem.horaInicio} onChange={(e) => setNuevoItem({...nuevoItem, horaInicio: e.target.value})} />
+                        </div>
+                      )}
                    </div>
                 </div>
               )}
