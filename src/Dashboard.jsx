@@ -52,7 +52,7 @@ const estilocss = `
 `;
 
 // ==========================================
-// COMPONENTE SEGURO PARA ADSENSE EN REACT
+// COMPONENTE SEGURO PARA ADSENSE EN REACT (RESPONSIVO)
 // ==========================================
 const AdSenseBanner = ({ adSlot }) => {
   useEffect(() => {
@@ -64,11 +64,13 @@ const AdSenseBanner = ({ adSlot }) => {
   }, []);
 
   return (
-    <div className="w-full flex justify-center my-6 overflow-hidden min-h-[50px] bg-gray-50 rounded-xl">
+    <div className="w-full flex justify-center my-4 overflow-hidden min-h-[50px] rounded-xl">
       <ins className="adsbygoogle"
-           style={{ display: 'inline-block', width: '320px', height: '100px' }}
+           style={{ display: 'block', width: '100%' }}
            data-ad-client="ca-pub-3386079946838939"
-           data-ad-slot={adSlot}></ins>
+           data-ad-slot={adSlot}
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
     </div>
   );
 };
@@ -104,7 +106,7 @@ const Dashboard = () => {
   const [mostrarScannerLogin, setMostrarScannerLogin] = useState(false);
   const [permisoNotif, setPermisoNotif] = useState('Notification' in window ? Notification.permission : 'denied');
 
-  // NUEVOS ESTADOS PARA SUGERENCIAS
+  // ESTADOS PARA SUGERENCIAS
   const [mostrarFeedback, setMostrarFeedback] = useState(false);
   const [mensajeFeedback, setMensajeFeedback] = useState('');
   const [enviandoFeedback, setEnviandoFeedback] = useState(false);
@@ -122,7 +124,6 @@ const Dashboard = () => {
     }
   };
 
-  // NUEVA FUNCIÓN PARA ENVIAR FEEDBACK (OPCIÓN B)
   const enviarFeedback = async () => {
     if (!mensajeFeedback.trim()) return;
     setEnviandoFeedback(true);
@@ -313,14 +314,15 @@ const Dashboard = () => {
   // ==========================================
   if (!usuarioActual) {
     return (
-      <div className="min-h-screen bg-[#F8F9FB] flex flex-col relative font-sans">
-        <div className="absolute top-0 left-0 w-full p-6 flex justify-start z-10">
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col font-sans">
+        {/* CORRECCIÓN: Se quitó position absolute para que no se monte sobre el logo */}
+        <div className="w-full p-6 flex justify-start z-10">
           <a href="https://quenosevenza.cl" className="text-gray-400 font-black text-xs uppercase tracking-widest flex items-center gap-1 hover:text-blue-600 transition-colors bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
             ← Volver a la Web
           </a>
         </div>
-        <div className="flex-1 flex flex-col justify-center items-center px-6">
-          <div className="w-full max-w-sm mt-10 animate-in fade-in duration-500">
+        <div className="flex-1 flex flex-col justify-center items-center px-6 pb-12">
+          <div className="w-full max-w-sm animate-in fade-in duration-500">
             <div className="text-center mb-10">
               <h1 className="text-4xl font-black tracking-tighter text-gray-900 italic">quenosevenza</h1>
               <p className="text-blue-600 font-bold text-xs uppercase tracking-widest mt-2">Acceso Seguro</p>
@@ -346,6 +348,10 @@ const Dashboard = () => {
                 <p className="text-center text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">O entrar con invitación</p>
                 <button onClick={() => setMostrarScannerLogin(true)} className="w-full bg-white border-2 border-dashed border-gray-300 text-gray-600 font-black p-4 rounded-2xl flex justify-center items-center gap-2 hover:bg-gray-50 active:scale-95 transition-all"><QrCode size={20} /> Escanear QR</button>
               </div>
+
+              {/* ADSENSE: DEBAJO DE ESCANEAR QR (LOGIN) */}
+              <AdSenseBanner adSlot="3628760602" />
+
             </div>
           </div>
         </div>
@@ -379,9 +385,7 @@ const Dashboard = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* CAMBIO 1: AGREGAR BOTÓN DE SUGERENCIAS */}
           <button onClick={() => setMostrarFeedback(true)} className="bg-white border border-gray-200 p-2.5 rounded-full text-amber-500 hover:bg-amber-50 shadow-sm" title="Sugerencias"><BookOpen size={18} /></button>
-          
           <a href="https://quenosevenza.cl" className="bg-white border border-gray-200 p-2.5 rounded-full text-blue-600 hover:bg-blue-50 shadow-sm" title="Ir a la Web Oficial">
             <Globe size={18} />
           </a>
@@ -401,11 +405,10 @@ const Dashboard = () => {
         )}
 
         {/* ==========================================
-            BARRA DE REGALO MENSUAL (DISEÑO LLAMATIVO Y NO INVASIVO)
+            BARRA DE REGALO MENSUAL
            ========================================== */}
         {tabActivo === 'comida' && !busqueda && (
           <div className="mb-8 animate-in zoom-in-95 duration-500">
-            {/* CAMBIO 2: ELIMINAR target="_blank" PARA QUE ABRA EN EL MISMO LUGAR */}
             <a href="https://quenosevenza.cl/regalo/" className="qnv-gift-card block shadow-lg">
               <div className="qnv-gift-content">
                 <div className="flex items-center gap-4">
@@ -454,8 +457,10 @@ const Dashboard = () => {
                         </>}
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <button onClick={() => abrirFormulario(p, 'alimento')} className="text-gray-400 hover:text-blue-500 p-1.5 bg-white rounded-full shadow-sm"><Edit2 size={12} /></button>
-                        <button onClick={() => solicitarBorrado(p, 'items', 'alimento')} className="text-gray-400 hover:text-red-500 p-1.5 bg-white rounded-full shadow-sm"><Trash2 size={12} /></button>
+                        {/* BOTON: CARRITO EN DESPENSA */}
+                        <button onClick={() => agregarACompras(p.nombre)} className="text-gray-400 hover:text-green-500 p-1.5 bg-white rounded-full shadow-sm" title="Añadir a lista de compras"><ShoppingCart size={12} /></button>
+                        <button onClick={() => abrirFormulario(p, 'alimento')} className="text-gray-400 hover:text-blue-500 p-1.5 bg-white rounded-full shadow-sm" title="Editar"><Edit2 size={12} /></button>
+                        <button onClick={() => solicitarBorrado(p, 'items', 'alimento')} className="text-gray-400 hover:text-red-500 p-1.5 bg-white rounded-full shadow-sm" title="Borrar"><Trash2 size={12} /></button>
                       </div>
                     </div>
                   </div>
@@ -481,8 +486,10 @@ const Dashboard = () => {
                         <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">{m.sinFecha ? 'Permanente' : (m.fecha ? `Vence: ${m.fecha.split('-').reverse().join('/')}` : 'Sin fecha')}</p>
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <button onClick={() => abrirFormulario(m, 'medicamento')} className="text-gray-400 hover:text-blue-500 p-1.5 bg-white rounded-full shadow-sm"><Edit2 size={14} /></button>
-                        <button onClick={() => solicitarBorrado(m, 'medicamentos', 'medicamento')} className="text-gray-400 hover:text-red-500 p-1.5 bg-white rounded-full shadow-sm"><Trash2 size={14} /></button>
+                        {/* BOTON: CARRITO EN BOTIQUIN */}
+                        <button onClick={() => agregarACompras(m.nombre)} className="text-gray-400 hover:text-green-500 p-1.5 bg-white rounded-full shadow-sm" title="Añadir a lista de compras"><ShoppingCart size={14} /></button>
+                        <button onClick={() => abrirFormulario(m, 'medicamento')} className="text-gray-400 hover:text-blue-500 p-1.5 bg-white rounded-full shadow-sm" title="Editar"><Edit2 size={14} /></button>
+                        <button onClick={() => solicitarBorrado(m, 'medicamentos', 'medicamento')} className="text-gray-400 hover:text-red-500 p-1.5 bg-white rounded-full shadow-sm" title="Borrar"><Trash2 size={14} /></button>
                       </div>
                     </div>
                     {!m.sinFecha && m.frecuencia !== 'Sin Alarma' && (
@@ -526,6 +533,10 @@ const Dashboard = () => {
             </div>
           </div>
         )}
+
+        {/* ADSENSE: AL FINAL DEL DASHBOARD Y LISTAS */}
+        <AdSenseBanner adSlot="3628760602" />
+
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 pb-safe z-40">
@@ -622,7 +633,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* MODAL DE SUGERENCIAS (NUEVO) */}
+      {/* MODAL DE SUGERENCIAS */}
       {mostrarFeedback && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center px-6 bg-black/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95">
