@@ -1,13 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, X, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing, Bell, Search, BookOpen, ThumbsUp, AlertTriangle, Menu, Infinity, Globe, FileText, Gift, Upload } from 'lucide-react';
+import { Trash2, X, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing, Bell, Search, BookOpen, ThumbsUp, AlertTriangle, Menu, Infinity, Globe, FileText, Gift } from 'lucide-react';
 import Scanner from './Scanner';
-
-// IMPORTACIÓN DE EXCEL
-import * as XLSX from 'xlsx';
-
 // IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
-import { collection, doc, setDoc, getDoc, addDoc, updateDoc, deleteDoc, onSnapshot, writeBatch } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, addDoc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 // ==========================================
 // INYECCIÓN DE CSS PARA LA ANIMACIÓN DEL REGALO
@@ -22,7 +18,7 @@ const estilocss = `
     position: relative;
     background: white;
     border-radius: 2rem;
-    padding: 1px; /* Espacio para el borde animado */
+    padding: 1px;
     overflow: hidden;
     transition: all 0.3s ease;
   }
@@ -43,7 +39,7 @@ const estilocss = `
     position: relative;
     z-index: 10;
     background: white;
-    border-radius: 1.9rem; /* Un poco menor que la tarjeta para el borde */
+    border-radius: 1.9rem;
     padding: 1rem;
     display: flex;
     justify-content: space-between;
@@ -51,12 +47,12 @@ const estilocss = `
     transition: background-color 0.3s;
   }
   .qnv-gift-card:hover .qnv-gift-content {
-    background: #f0f7ff; /* Fondo azul clarito en hover */
+    background: #f0f7ff;
   }
 `;
 
 // ==========================================
-// COMPONENTE SEGURO PARA ADSENSE EN REACT (RESPONSIVO)
+// COMPONENTE SEGURO PARA ADSENSE EN REACT
 // ==========================================
 const AdSenseBanner = ({ adSlot }) => {
   useEffect(() => {
@@ -80,19 +76,16 @@ const AdSenseBanner = ({ adSlot }) => {
 };
 
 const Dashboard = () => {
-  // Inyectar el CSS dinámicamente al cargar el componente
   useEffect(() => {
     const styleSheet = document.createElement("style");
     styleSheet.type = "text/css";
     styleSheet.innerText = estilocss;
     document.head.appendChild(styleSheet);
-    return () => {
-      document.head.removeChild(styleSheet); // Limpiar al desmontar
-    };
+    return () => document.head.removeChild(styleSheet);
   }, []);
 
   // ==========================================
-  // ESTADOS PRINCIPALES Y AUTENTICACIÓN
+  // ESTADOS Y AUTENTICACIÓN
   // ==========================================
   const [usuarioActual, setUsuarioActual] = useState(() => {
     const guardado = localStorage.getItem('cv_usuario_activo');
@@ -109,8 +102,6 @@ const Dashboard = () => {
   const [mostrarQRCompartir, setMostrarQRCompartir] = useState(false);
   const [mostrarScannerLogin, setMostrarScannerLogin] = useState(false);
   const [permisoNotif, setPermisoNotif] = useState('Notification' in window ? Notification.permission : 'denied');
-
-  // ESTADOS PARA SUGERENCIAS
   const [mostrarFeedback, setMostrarFeedback] = useState(false);
   const [mensajeFeedback, setMensajeFeedback] = useState('');
   const [enviandoFeedback, setEnviandoFeedback] = useState(false);
@@ -135,20 +126,12 @@ const Dashboard = () => {
       await fetch("https://formsubmit.co/ajax/hola@quenosevenza.cl", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({
-          Hogar: usuarioActual.id,
-          Mensaje: mensajeFeedback,
-          _subject: "💡 Sugerencia desde App: " + usuarioActual.id
-        })
+        body: JSON.stringify({ Hogar: usuarioActual.id, Mensaje: mensajeFeedback, _subject: "💡 Sugerencia desde App: " + usuarioActual.id })
       });
       alert("¡Gracias! Tu sugerencia fue enviada con éxito.");
-      setMensajeFeedback('');
-      setMostrarFeedback(false);
-    } catch (e) {
-      alert("Error al enviar. Intenta de nuevo.");
-    } finally {
-      setEnviandoFeedback(false);
-    }
+      setMensajeFeedback(''); setMostrarFeedback(false);
+    } catch (e) { alert("Error al enviar. Intenta de nuevo."); } 
+    finally { setEnviandoFeedback(false); }
   };
 
   const manejarAcceso = async () => {
@@ -199,63 +182,6 @@ const Dashboard = () => {
         else { iniciarSesion(qrId, qrPin); }
       } catch(e) { setErrorAuth('Error al leer el QR.'); } finally { setCargandoAuth(false); }
     } else { setErrorAuth('Ese código QR no es una invitación de Que No Se Venza.'); }
-  };
-
-  // ==========================================
-  // LÓGICA DE CARGA MASIVA (EXCEL)
-  // ==========================================
-  const convertirFechaExcel = (fecha) => {
-    if (!fecha) return '';
-    // Si Excel lo manda como número de serie (ej: 45000)
-    if (typeof fecha === 'number') {
-      const fechaJS = new Date((fecha - 25569) * 86400 * 1000);
-      return fechaJS.toISOString().split('T')[0]; // Devuelve AAAA-MM-DD
-    }
-    // Si viene como texto, lo devolvemos tal cual
-    return String(fecha);
-  };
-
-  const procesarExcel = (e) => {
-    const archivo = e.target.files[0];
-    if (!archivo) return;
-    
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      const bstr = evt.target.result;
-      const wb = XLSX.read(bstr, { type: 'binary' });
-      const wsname = wb.SheetNames[0];
-      const ws = wb.Sheets[wsname];
-      
-      const datosRaw = XLSX.utils.sheet_to_json(ws);
-      if (datosRaw.length === 0) return alert("El archivo está vacío.");
-
-      const batch = writeBatch(db);
-      
-      datosRaw.forEach((fila) => {
-        const nuevoDocRef = doc(collection(db, 'despensas', usuarioActual.id, 'items'));
-        batch.set(nuevoDocRef, {
-          nombre: fila.Nombre || fila.nombre || 'Sin nombre',
-          marca: fila.Marca || fila.marca || '',
-          variante: fila.Variante || fila.variante || '',
-          lote: fila.Lote || fila.lote || '',
-          fecha: convertirFechaExcel(fila.Fecha_Caducidad || fila.fecha || fila.vencimiento),
-          proveedor: fila.Proveedor || fila.proveedor || '',
-          sinFecha: false, // Por defecto para negocios
-          creadoEn: new Date().getTime(),
-          tipo: 'alimento'
-        });
-      });
-
-      try {
-        await batch.commit();
-        alert(`¡Éxito! Se cargaron ${datosRaw.length} productos.`);
-        e.target.value = null; // Limpiamos el input
-      } catch (error) {
-        console.error("Error en carga masiva:", error);
-        alert("Hubo un error al subir los productos.");
-      }
-    };
-    reader.readAsBinaryString(archivo);
   };
 
   const [productos, setProductos] = useState([]);
@@ -409,21 +335,11 @@ const Dashboard = () => {
                 <p className="text-center text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">O entrar con invitación</p>
                 <button onClick={() => setMostrarScannerLogin(true)} className="w-full bg-white border-2 border-dashed border-gray-300 text-gray-600 font-black p-4 rounded-2xl flex justify-center items-center gap-2 hover:bg-gray-50 active:scale-95 transition-all"><QrCode size={20} /> Escanear QR</button>
               </div>
-
-              {/* ADSENSE: DEBAJO DE ESCANEAR QR (LOGIN) */}
               <AdSenseBanner adSlot="3628760602" />
-
             </div>
           </div>
         </div>
         <div className="p-6 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
-          <div className="flex justify-center gap-4 mb-3 flex-wrap">
-            <a href="https://quenosevenza.cl/blog" className="hover:text-blue-600">Blog</a>
-            <a href="https://quenosevenza.cl/sobre-nosotros" className="hover:text-blue-600">Misión</a>
-            <a href="https://quenosevenza.cl/politica-de-privacidad" className="hover:text-blue-600">Privacidad</a>
-            <a href="https://quenosevenza.cl/terminos-y-condiciones" className="hover:text-blue-600">Términos</a>
-            <a href="https://quenosevenza.cl/contacto" className="hover:text-blue-600">Contacto</a>
-          </div>
           <p>© 2026 Que No Se Venza</p>
         </div>
         {mostrarScannerLogin && <Scanner onScan={procesarQRLogin} onClose={() => setMostrarScannerLogin(false)} />}
@@ -431,189 +347,225 @@ const Dashboard = () => {
     );
   }
 
-  // --- LOGICA DASHBOARD ---
+  // --- LOGICA DASHBOARD RESPONSIVO ---
   const qrData = `QNV-LOGIN|${usuarioActual?.id || 'error'}|${usuarioActual?.pin || '0000'}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrData)}`;
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB] font-sans pb-40 flex flex-col relative">
-      <header className="px-6 pt-12 pb-4 flex justify-between items-center sticky top-0 bg-[#F8F9FB] z-20">
-        <div>
+    <div className="flex min-h-screen bg-[#F8F9FB] font-sans">
+      
+      {/* ==========================================
+          SIDEBAR (SÓLO VISIBLE EN ESCRITORIO / md: )
+         ========================================== */}
+      <aside className="hidden md:flex flex-col w-64 fixed h-full bg-white border-r border-gray-100 z-40">
+        <div className="p-6 pb-2">
           <h1 className="text-2xl font-black tracking-tight text-gray-900 leading-none italic">quenosevenza</h1>
           <div className="flex items-center gap-1 mt-1 opacity-60">
             <Home size={12} className="text-blue-600" />
             <p className="font-bold text-[10px] uppercase tracking-widest text-gray-800">{usuarioActual.id}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setMostrarFeedback(true)} className="bg-white border border-gray-200 p-2.5 rounded-full text-amber-500 hover:bg-amber-50 shadow-sm" title="Sugerencias"><BookOpen size={18} /></button>
-          <a href="https://quenosevenza.cl" className="bg-white border border-gray-200 p-2.5 rounded-full text-blue-600 hover:bg-blue-50 shadow-sm" title="Ir a la Web Oficial">
-            <Globe size={18} />
-          </a>
-          <button onClick={pedirPermisoNotificaciones} className={`bg-white border border-gray-200 p-2.5 rounded-full hover:bg-blue-50 shadow-sm ${permisoNotif === 'granted' ? 'text-green-500' : 'text-gray-400'}`}><Bell size={18} /></button>
-          <button onClick={() => setMostrarQRCompartir(true)} className="bg-white border border-gray-200 p-2.5 rounded-full text-indigo-600 hover:bg-indigo-50 shadow-sm"><Share2 size={18} /></button>
-          <button onClick={cerrarSesion} className="bg-white border border-gray-200 p-2.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm"><LogOut size={18} /></button>
+
+        <nav className="flex-1 px-4 mt-6 space-y-2">
+          <button onClick={() => setTabActivo('comida')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${tabActivo === 'comida' ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}>
+            <Leaf size={20} className={tabActivo === 'comida' ? 'fill-blue-100' : ''} />
+            <span className="text-sm font-bold">Despensa</span>
+          </button>
+          <button onClick={() => setTabActivo('medicamentos')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${tabActivo === 'medicamentos' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-500 hover:bg-gray-50'}`}>
+            <Pill size={20} className={tabActivo === 'medicamentos' ? 'fill-indigo-100' : ''} />
+            <span className="text-sm font-bold">Botiquín</span>
+          </button>
+          <button onClick={() => setTabActivo('compras')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${tabActivo === 'compras' ? 'bg-green-50 text-green-600' : 'text-gray-500 hover:bg-gray-50'}`}>
+            <ShoppingCart size={20} className={tabActivo === 'compras' ? 'fill-green-100' : ''} />
+            <span className="text-sm font-bold">Compras</span>
+          </button>
+        </nav>
+
+        <div className="p-4 border-t border-gray-100 space-y-2">
+           {tabActivo !== 'compras' && (
+            <button onClick={() => abrirFormulario(null, tabActivo === 'comida' ? 'alimento' : 'medicamento')} className="w-full bg-gray-900 text-white font-black p-3 rounded-xl shadow-md flex items-center justify-center gap-2 hover:bg-gray-800 transition-all active:scale-95">
+              <Plus size={18} strokeWidth={3} /> Añadir Elemento
+            </button>
+           )}
+           <button onClick={cerrarSesion} className="w-full flex justify-center items-center gap-2 p-3 text-xs font-bold text-gray-400 hover:text-red-500 transition-colors">
+              <LogOut size={14} /> Cerrar Sesión
+           </button>
         </div>
-      </header>
+      </aside>
 
-      <main className="flex-1 px-6 mt-2 relative z-10">
-        {(tabActivo === 'comida' || tabActivo === 'medicamentos') && (
-          <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 mb-6 animate-in slide-in-from-top-4">
-             <Search size={18} className="text-gray-400 ml-1" />
-             <input type="text" placeholder={`Buscar en ${tabActivo}...`} value={busqueda} onChange={e => setBusqueda(e.target.value)} className="flex-1 outline-none text-sm font-bold text-gray-700 bg-transparent" />
-             {busqueda && <button onClick={()=>setBusqueda('')} className="bg-gray-100 p-1.5 rounded-full hover:bg-gray-200"><X size={14} className="text-gray-500"/></button>}
-          </div>
-        )}
-
-        {/* ==========================================
-            BOTÓN DE CARGA MASIVA B2B (NUEVO)
-           ========================================== */}
-        {tabActivo === 'comida' && !busqueda && (
-          <div className="mb-6 flex justify-end animate-in fade-in">
-            <label className="bg-green-600 hover:bg-green-700 text-white font-black text-[11px] uppercase tracking-widest py-2.5 px-4 rounded-xl cursor-pointer flex items-center gap-2 shadow-sm transition-colors">
-              <Upload size={14} />
-              Cargar Excel
-              <input type="file" accept=".xlsx, .xls, .csv" onChange={procesarExcel} className="hidden" />
-            </label>
-          </div>
-        )}
-
-        {/* ==========================================
-            BARRA DE REGALO MENSUAL
-           ========================================== */}
-        {tabActivo === 'comida' && !busqueda && (
-          <div className="mb-8 animate-in zoom-in-95 duration-500">
-            <a href="https://quenosevenza.cl/regalo/" className="qnv-gift-card block shadow-lg">
-              <div className="qnv-gift-content">
-                <div className="flex items-center gap-4">
-                  <div className="bg-blue-600 p-3 rounded-xl text-white shadow-sm flex items-center justify-center">
-                    <Gift size={18} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest leading-none mb-1">Regalo de Abril</p>
-                    <h3 className="text-sm font-black text-gray-900 leading-tight">Guía Pro: Limpieza de Refrigerador</h3>
-                  </div>
-                </div>
-                <div className="bg-blue-100 p-2 rounded-lg text-blue-600 flex items-center justify-center">
-                  <ArrowRight size={16} />
-                </div>
-              </div>
-            </a>
-          </div>
-        )}
-
-        {/* --- LISTADO CON ORDENAMIENTO POR FECHA --- */}
-        {tabActivo === 'comida' && (
-          <div className="animate-in fade-in duration-300">
-            <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Semáforo de Alimentos</h2>
-            <div className="space-y-3">
-              {productosFiltrados
-                .sort((a, b) => {
-                  if (a.sinFecha && !b.sinFecha) return 1;
-                  if (!a.sinFecha && b.sinFecha) return -1;
-                  return new Date(a.fecha) - new Date(b.fecha);
-                })
-                .map((p) => {
-                const est = obtenerEstado(p);
-                const dias = p.sinFecha ? null : calcularDias(p.fecha);
-                return (
-                  <div key={p.id} className={`p-5 rounded-[1.5rem] border-2 flex items-center justify-between shadow-sm transition-all ${est.bg} ${est.border}`}>
-                    <div className="flex-1 pr-2">
-                      <div className="flex items-center gap-1.5 mb-1"><span className="text-[10px]">{est.icono}</span><span className={`text-[9px] font-black uppercase tracking-widest ${est.text}`}>{est.titulo}</span></div>
-                      <h3 className={`font-black text-[16px] leading-tight ${!p.sinFecha && dias < 0 ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{p.nombre}</h3>
-                      <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">{p.sinFecha ? 'Permanente' : `Vence: ${p.fecha.split('-').reverse().join('/')}`}</p>
-                    </div>
-                    <div className="flex items-center gap-1 pl-3 border-l border-black/10">
-                      <div className="text-center min-w-[3rem] mr-1">
-                        {p.sinFecha ? <Infinity size={24} className="mx-auto text-gray-400" /> : <>
-                          <span className={`block text-2xl font-black leading-none ${est.text}`}>{Math.abs(dias)}</span>
-                          <span className={`text-[8px] font-black uppercase tracking-widest opacity-50`}>días</span>
-                        </>}
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        {/* BOTON: CARRITO EN DESPENSA */}
-                        <button onClick={() => agregarACompras(p.nombre)} className="text-gray-400 hover:text-green-500 p-1.5 bg-white rounded-full shadow-sm" title="Añadir a lista de compras"><ShoppingCart size={12} /></button>
-                        <button onClick={() => abrirFormulario(p, 'alimento')} className="text-gray-400 hover:text-blue-500 p-1.5 bg-white rounded-full shadow-sm" title="Editar"><Edit2 size={12} /></button>
-                        <button onClick={() => solicitarBorrado(p, 'items', 'alimento')} className="text-gray-400 hover:text-red-500 p-1.5 bg-white rounded-full shadow-sm" title="Borrar"><Trash2 size={12} /></button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+      {/* ==========================================
+          CONTENEDOR PRINCIPAL (Se ajusta si hay sidebar)
+         ========================================== */}
+      <div className="flex-1 md:ml-64 flex flex-col relative pb-24 md:pb-6 min-w-0">
+        
+        {/* HEADER (El título principal se oculta en PC porque ya está en el sidebar) */}
+        <header className="px-6 pt-12 md:pt-6 pb-4 flex justify-between items-center sticky top-0 bg-[#F8F9FB] z-20">
+          <div className="md:hidden">
+            <h1 className="text-2xl font-black tracking-tight text-gray-900 leading-none italic">quenosevenza</h1>
+            <div className="flex items-center gap-1 mt-1 opacity-60">
+              <Home size={12} className="text-blue-600" />
+              <p className="font-bold text-[10px] uppercase tracking-widest text-gray-800">{usuarioActual.id}</p>
             </div>
           </div>
-        )}
+          <div className="hidden md:block"></div> {/* Espaciador invisible para PC */}
 
-        {tabActivo === 'medicamentos' && (
-          <div className="animate-in fade-in duration-300">
-            <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Botiquín</h2>
-            <div className="space-y-3">
-              {medicamentosFiltrados.sort((a, b) => new Date(a.fecha || '2099-12-31') - new Date(b.fecha || '2099-12-31')).map((m) => {
-                const est = obtenerEstado(m);
-                const alarmaSonando = !m.sinFecha && checkAlarmaVisual(m);
-                return (
-                  <div key={m.id} className={`p-5 rounded-[1.5rem] border-2 flex flex-col justify-between shadow-sm transition-colors ${alarmaSonando ? 'bg-red-100 border-red-300 shadow-xl' : est.bg + ' ' + est.border}`}>
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
+          {/* Menú de utilidades superior */}
+          <div className="flex items-center gap-2">
+            <button onClick={() => setMostrarFeedback(true)} className="bg-white border border-gray-200 p-2.5 rounded-full text-amber-500 hover:bg-amber-50 shadow-sm" title="Sugerencias"><BookOpen size={18} /></button>
+            <a href="https://quenosevenza.cl" className="bg-white border border-gray-200 p-2.5 rounded-full text-blue-600 hover:bg-blue-50 shadow-sm" title="Ir a la Web Oficial"><Globe size={18} /></a>
+            <button onClick={pedirPermisoNotificaciones} className={`bg-white border border-gray-200 p-2.5 rounded-full hover:bg-blue-50 shadow-sm ${permisoNotif === 'granted' ? 'text-green-500' : 'text-gray-400'}`}><Bell size={18} /></button>
+            <button onClick={() => setMostrarQRCompartir(true)} className="bg-white border border-gray-200 p-2.5 rounded-full text-indigo-600 hover:bg-indigo-50 shadow-sm"><Share2 size={18} /></button>
+            <div className="md:hidden">
+               <button onClick={cerrarSesion} className="bg-white border border-gray-200 p-2.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm"><LogOut size={18} /></button>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 px-6 mt-2 relative z-10 max-w-7xl mx-auto w-full">
+          
+          {(tabActivo === 'comida' || tabActivo === 'medicamentos') && (
+            <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 mb-6 animate-in slide-in-from-top-4">
+               <Search size={18} className="text-gray-400 ml-1" />
+               <input type="text" placeholder={`Buscar en ${tabActivo}...`} value={busqueda} onChange={e => setBusqueda(e.target.value)} className="flex-1 outline-none text-sm font-bold text-gray-700 bg-transparent" />
+               {busqueda && <button onClick={()=>setBusqueda('')} className="bg-gray-100 p-1.5 rounded-full hover:bg-gray-200"><X size={14} className="text-gray-500"/></button>}
+            </div>
+          )}
+
+          {tabActivo === 'comida' && !busqueda && (
+            <div className="mb-8 animate-in zoom-in-95 duration-500 md:max-w-md">
+              <a href="https://quenosevenza.cl/regalo/" className="qnv-gift-card block shadow-lg">
+                <div className="qnv-gift-content">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-blue-600 p-3 rounded-xl text-white shadow-sm flex items-center justify-center">
+                      <Gift size={18} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest leading-none mb-1">Regalo de Abril</p>
+                      <h3 className="text-sm font-black text-gray-900 leading-tight">Guía Pro: Limpieza de Refrigerador</h3>
+                    </div>
+                  </div>
+                  <div className="bg-blue-100 p-2 rounded-lg text-blue-600 flex items-center justify-center">
+                    <ArrowRight size={16} />
+                  </div>
+                </div>
+              </a>
+            </div>
+          )}
+
+          {/* --- CUADRÍCULA RESPONSIVA (GRID) PARA COMIDA --- */}
+          {tabActivo === 'comida' && (
+            <div className="animate-in fade-in duration-300">
+              <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Semáforo de Alimentos</h2>
+              {/* AQUÍ ESTÁ LA MAGIA RESPONSIVA: grid-cols-1 en móvil, grid-cols-2 en tablet, grid-cols-3 en PC grande */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {productosFiltrados
+                  .sort((a, b) => {
+                    if (a.sinFecha && !b.sinFecha) return 1;
+                    if (!a.sinFecha && b.sinFecha) return -1;
+                    return new Date(a.fecha) - new Date(b.fecha);
+                  })
+                  .map((p) => {
+                  const est = obtenerEstado(p);
+                  const dias = p.sinFecha ? null : calcularDias(p.fecha);
+                  return (
+                    <div key={p.id} className={`p-5 rounded-[1.5rem] border-2 flex items-center justify-between shadow-sm transition-all h-full ${est.bg} ${est.border}`}>
+                      <div className="flex-1 pr-2">
                         <div className="flex items-center gap-1.5 mb-1"><span className="text-[10px]">{est.icono}</span><span className={`text-[9px] font-black uppercase tracking-widest ${est.text}`}>{est.titulo}</span></div>
-                        <h3 className="font-black text-[16px] leading-tight text-gray-900">{m.nombre}</h3>
-                        <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">{m.sinFecha ? 'Permanente' : (m.fecha ? `Vence: ${m.fecha.split('-').reverse().join('/')}` : 'Sin fecha')}</p>
+                        <h3 className={`font-black text-[16px] leading-tight ${!p.sinFecha && dias < 0 ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{p.nombre}</h3>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">{p.sinFecha ? 'Permanente' : `Vence: ${p.fecha.split('-').reverse().join('/')}`}</p>
                       </div>
-                      <div className="flex flex-col gap-1.5">
-                        {/* BOTON: CARRITO EN BOTIQUIN */}
-                        <button onClick={() => agregarACompras(m.nombre)} className="text-gray-400 hover:text-green-500 p-1.5 bg-white rounded-full shadow-sm" title="Añadir a lista de compras"><ShoppingCart size={14} /></button>
-                        <button onClick={() => abrirFormulario(m, 'medicamento')} className="text-gray-400 hover:text-blue-500 p-1.5 bg-white rounded-full shadow-sm" title="Editar"><Edit2 size={14} /></button>
-                        <button onClick={() => solicitarBorrado(m, 'medicamentos', 'medicamento')} className="text-gray-400 hover:text-red-500 p-1.5 bg-white rounded-full shadow-sm" title="Borrar"><Trash2 size={14} /></button>
+                      <div className="flex items-center gap-1 pl-3 border-l border-black/10">
+                        <div className="text-center min-w-[3rem] mr-1">
+                          {p.sinFecha ? <Infinity size={24} className="mx-auto text-gray-400" /> : <>
+                            <span className={`block text-2xl font-black leading-none ${est.text}`}>{Math.abs(dias)}</span>
+                            <span className={`text-[8px] font-black uppercase tracking-widest opacity-50`}>días</span>
+                          </>}
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <button onClick={() => agregarACompras(p.nombre)} className="text-gray-400 hover:text-green-500 p-1.5 bg-white rounded-full shadow-sm" title="Añadir a lista de compras"><ShoppingCart size={12} /></button>
+                          <button onClick={() => abrirFormulario(p, 'alimento')} className="text-gray-400 hover:text-blue-500 p-1.5 bg-white rounded-full shadow-sm" title="Editar"><Edit2 size={12} /></button>
+                          <button onClick={() => solicitarBorrado(p, 'items', 'alimento')} className="text-gray-400 hover:text-red-500 p-1.5 bg-white rounded-full shadow-sm" title="Borrar"><Trash2 size={12} /></button>
+                        </div>
                       </div>
                     </div>
-                    {!m.sinFecha && m.frecuencia !== 'Sin Alarma' && (
-                      <div className={`p-3 rounded-xl border flex items-center justify-between ${alarmaSonando ? 'bg-red-500 border-red-600 shadow-md' : 'bg-white/60 border-white'}`}>
-                        <div className="flex items-center gap-3">
-                          <Clock size={16} className={alarmaSonando ? 'text-white' : 'text-indigo-500'} />
-                          <div>
-                            {m.dosis && <p className={`text-[11px] font-black leading-tight ${alarmaSonando ? 'text-white' : 'text-gray-800'}`}>Dosis: {m.dosis}</p>}
-                            <p className={`text-[9px] font-bold uppercase tracking-widest ${alarmaSonando ? 'text-red-100' : 'text-gray-500'}`}>Cada {m.frecuencia}h</p>
-                          </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* --- CUADRÍCULA RESPONSIVA (GRID) PARA MEDICAMENTOS --- */}
+          {tabActivo === 'medicamentos' && (
+            <div className="animate-in fade-in duration-300">
+              <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Tu Botiquín</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {medicamentosFiltrados.sort((a, b) => new Date(a.fecha || '2099-12-31') - new Date(b.fecha || '2099-12-31')).map((m) => {
+                  const est = obtenerEstado(m);
+                  const alarmaSonando = !m.sinFecha && checkAlarmaVisual(m);
+                  return (
+                    <div key={m.id} className={`p-5 rounded-[1.5rem] border-2 flex flex-col justify-between shadow-sm transition-colors h-full ${alarmaSonando ? 'bg-red-100 border-red-300 shadow-xl' : est.bg + ' ' + est.border}`}>
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1"><span className="text-[10px]">{est.icono}</span><span className={`text-[9px] font-black uppercase tracking-widest ${est.text}`}>{est.titulo}</span></div>
+                          <h3 className="font-black text-[16px] leading-tight text-gray-900">{m.nombre}</h3>
+                          <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">{m.sinFecha ? 'Permanente' : (m.fecha ? `Vence: ${m.fecha.split('-').reverse().join('/')}` : 'Sin fecha')}</p>
                         </div>
-                        {alarmaSonando && (
-                          <button onClick={() => registrarToma(m.id)} className="bg-white text-red-600 font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded-lg shadow-sm">Tomé</button>
-                        )}
+                        <div className="flex flex-col gap-1.5">
+                          <button onClick={() => agregarACompras(m.nombre)} className="text-gray-400 hover:text-green-500 p-1.5 bg-white rounded-full shadow-sm" title="Añadir a lista de compras"><ShoppingCart size={14} /></button>
+                          <button onClick={() => abrirFormulario(m, 'medicamento')} className="text-gray-400 hover:text-blue-500 p-1.5 bg-white rounded-full shadow-sm" title="Editar"><Edit2 size={14} /></button>
+                          <button onClick={() => solicitarBorrado(m, 'medicamentos', 'medicamento')} className="text-gray-400 hover:text-red-500 p-1.5 bg-white rounded-full shadow-sm" title="Borrar"><Trash2 size={14} /></button>
+                        </div>
                       </div>
-                    )}
+                      {!m.sinFecha && m.frecuencia !== 'Sin Alarma' && (
+                        <div className={`mt-auto p-3 rounded-xl border flex items-center justify-between ${alarmaSonando ? 'bg-red-500 border-red-600 shadow-md' : 'bg-white/60 border-white'}`}>
+                          <div className="flex items-center gap-3">
+                            <Clock size={16} className={alarmaSonando ? 'text-white' : 'text-indigo-500'} />
+                            <div>
+                              {m.dosis && <p className={`text-[11px] font-black leading-tight ${alarmaSonando ? 'text-white' : 'text-gray-800'}`}>Dosis: {m.dosis}</p>}
+                              <p className={`text-[9px] font-bold uppercase tracking-widest ${alarmaSonando ? 'text-red-100' : 'text-gray-500'}`}>Cada {m.frecuencia}h</p>
+                            </div>
+                          </div>
+                          {alarmaSonando && (
+                            <button onClick={() => registrarToma(m.id)} className="bg-white text-red-600 font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded-lg shadow-sm">Tomé</button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {tabActivo === 'compras' && (
+            <div className="animate-in fade-in duration-300 md:max-w-2xl">
+              <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1 flex items-center gap-1"><ShoppingCart size={14}/> Lista de Compras</h2>
+              <div className="flex gap-2 mb-4">
+                <input type="text" placeholder="Añadir a la lista..." className="flex-1 p-4 bg-white shadow-sm border border-gray-100 rounded-2xl outline-none font-bold text-gray-800 text-sm" 
+                       onKeyDown={(e) => { if (e.key === 'Enter' && e.target.value.trim()) { agregarACompras(e.target.value.trim()); e.target.value = ''; } }} />
+              </div>
+              <div className="space-y-2">
+                {compras.map((c) => (
+                  <div key={c.id} className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${c.comprado ? 'bg-gray-50 border-gray-200 opacity-60' : 'bg-white border-gray-200 shadow-sm'}`}>
+                    <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => toggleCompra(c)}>
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${c.comprado ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>{c.comprado && <CheckCircle2 size={14} className="text-white"/>}</div>
+                      <span className={`font-black text-sm ${c.comprado ? 'line-through text-gray-400' : 'text-gray-800'}`}>{c.nombre}</span>
+                    </div>
+                    <button onClick={() => borrarItemDirecto(c.id, 'compras')} className="text-gray-400 hover:text-red-500 p-2"><Trash2 size={16} /></button>
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {tabActivo === 'compras' && (
-          <div className="animate-in fade-in duration-300">
-            <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1 flex items-center gap-1"><ShoppingCart size={14}/> Lista de Compras</h2>
-            <div className="flex gap-2 mb-4">
-              <input type="text" placeholder="Añadir a la lista..." className="flex-1 p-4 bg-white shadow-sm border border-gray-100 rounded-2xl outline-none font-bold text-gray-800 text-sm" 
-                     onKeyDown={(e) => { if (e.key === 'Enter' && e.target.value.trim()) { agregarACompras(e.target.value.trim()); e.target.value = ''; } }} />
-            </div>
-            <div className="space-y-2">
-              {compras.map((c) => (
-                <div key={c.id} className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${c.comprado ? 'bg-gray-50 border-gray-200 opacity-60' : 'bg-white border-gray-200 shadow-sm'}`}>
-                  <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => toggleCompra(c)}>
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${c.comprado ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>{c.comprado && <CheckCircle2 size={14} className="text-white"/>}</div>
-                    <span className={`font-black text-sm ${c.comprado ? 'line-through text-gray-400' : 'text-gray-800'}`}>{c.nombre}</span>
-                  </div>
-                  <button onClick={() => borrarItemDirecto(c.id, 'compras')} className="text-gray-400 hover:text-red-500 p-2"><Trash2 size={16} /></button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+          <AdSenseBanner adSlot="3628760602" />
+        </main>
+      </div>
 
-        {/* ADSENSE: AL FINAL DEL DASHBOARD Y LISTAS */}
-        <AdSenseBanner adSlot="3628760602" />
-
-      </main>
-
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 pb-safe z-40">
+      {/* ==========================================
+          BARRA DE NAVEGACIÓN INFERIOR (SÓLO MÓVIL / md:hidden )
+         ========================================== */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 pb-safe z-40">
         <div className="max-w-md mx-auto flex justify-between px-4 py-2">
           <button onClick={() => setTabActivo('comida')} className={`flex flex-col items-center p-2 flex-1 ${tabActivo === 'comida' ? 'text-blue-600' : 'text-gray-400'}`}>
             <Leaf size={22} className={tabActivo === 'comida' ? 'fill-blue-100' : ''} />
@@ -630,7 +582,16 @@ const Dashboard = () => {
         </div>
       </nav>
 
-      {/* Papelera inteligente */}
+      {/* BOTÓN FLOTANTE (SÓLO MÓVIL / md:hidden) */}
+      {tabActivo !== 'compras' && (
+        <div className="md:hidden fixed bottom-[80px] left-0 right-0 p-6 flex flex-col gap-3 pointer-events-none z-30">
+          <div className="pointer-events-auto flex justify-end">
+            <button onClick={() => abrirFormulario(null, tabActivo === 'comida' ? 'alimento' : 'medicamento')} className="w-14 h-14 bg-gray-900 text-white rounded-full shadow-lg flex items-center justify-center active:scale-95"><Plus size={24} strokeWidth={3} /></button>
+          </div>
+        </div>
+      )}
+
+      {/* MODALES COMPARTIDOS (Papelera, QR, Formulario, Feedback) */}
       {itemABorrar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-300">
@@ -641,14 +602,6 @@ const Dashboard = () => {
               <button onClick={() => confirmarBorradoEstadistica('basura')} className="w-full bg-red-100 text-red-700 font-black p-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 border border-red-200"><AlertTriangle size={20}/> Se echó a perder</button>
               <button onClick={() => setItemABorrar(null)} className="mt-4 text-gray-400 font-bold text-xs uppercase tracking-widest p-2">Cancelar</button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {tabActivo !== 'compras' && (
-        <div className="fixed bottom-[80px] left-0 right-0 p-6 flex flex-col gap-3 pointer-events-none z-30">
-          <div className="pointer-events-auto flex justify-end">
-            <button onClick={() => abrirFormulario(null, tabActivo === 'comida' ? 'alimento' : 'medicamento')} className="w-14 h-14 bg-gray-900 text-white rounded-full shadow-lg flex items-center justify-center active:scale-95"><Plus size={24} strokeWidth={3} /></button>
           </div>
         </div>
       )}
@@ -669,12 +622,12 @@ const Dashboard = () => {
       )}
 
       {mostrarForm && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
+        <div className="fixed inset-0 z-50 flex items-center md:items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMostrarForm(false)}></div>
-          <div className="bg-white w-full max-w-md rounded-t-[2.5rem] p-8 pb-12 shadow-2xl relative z-10 animate-in slide-in-from-bottom duration-300">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl relative z-10 animate-in zoom-in-95 duration-300">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-black italic">{editandoId ? 'Editar Elemento' : 'Añadir al Hogar'}</h2>
-              <button onClick={() => setMostrarForm(false)} className="bg-gray-100 p-2 rounded-full"><X size={18}/></button>
+              <button onClick={() => setMostrarForm(false)} className="bg-gray-100 p-2 rounded-full hover:bg-gray-200"><X size={18}/></button>
             </div>
             {!editandoId && (
               <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
@@ -685,7 +638,6 @@ const Dashboard = () => {
             <div className="space-y-4">
               <input type="text" placeholder="Nombre (Ej: Paracetamol)" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold" value={nuevoItem.nombre} onChange={(e) => setNuevoItem({...nuevoItem, nombre: e.target.value})} />
               
-              {/* CAMPO DE DOSIS: Solo aparece si es medicamento */}
               {nuevoItem.tipo === 'medicamento' && (
                 <div>
                    <input type="text" placeholder="Dosis (Ej: 1 pastilla, 10ml) - Opcional" className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-200 rounded-2xl outline-none font-bold text-sm" value={nuevoItem.dosis} onChange={(e) => setNuevoItem({...nuevoItem, dosis: e.target.value})} />
@@ -703,7 +655,6 @@ const Dashboard = () => {
                 </div>
               )}
 
-              {/* SECCIÓN DE ALERTAS */}
               {nuevoItem.tipo === 'medicamento' && !nuevoItem.sinFecha && (
                 <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 space-y-3 animate-in fade-in">
                    <div className="flex gap-4">
@@ -718,7 +669,6 @@ const Dashboard = () => {
                         </select>
                       </div>
                       
-                      {/* Oculta la hora de la toma si eliges "Sin alertas" */}
                       {nuevoItem.frecuencia !== 'Sin Alarma' && (
                         <div className="flex-1 animate-in fade-in">
                           <label className="text-[10px] font-black text-indigo-400 uppercase ml-2 mb-1 block">1ª Toma</label>
@@ -734,7 +684,6 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* MODAL DE SUGERENCIAS */}
       {mostrarFeedback && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center px-6 bg-black/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95">
@@ -747,14 +696,10 @@ const Dashboard = () => {
               onChange={(e) => setMensajeFeedback(e.target.value)}
             />
             <div className="flex flex-col gap-3 mt-6">
-              <button 
-                onClick={enviarFeedback}
-                disabled={enviandoFeedback || !mensajeFeedback.trim()}
-                className="w-full bg-blue-600 text-white font-black p-4 rounded-2xl active:scale-95 disabled:opacity-50 transition-all"
-              >
+              <button onClick={enviarFeedback} disabled={enviandoFeedback || !mensajeFeedback.trim()} className="w-full bg-blue-600 text-white font-black p-4 rounded-2xl active:scale-95 disabled:opacity-50 transition-all">
                 {enviandoFeedback ? 'Enviando...' : 'Enviar Sugerencia'}
               </button>
-              <button onClick={() => setMostrarFeedback(false)} className="text-gray-400 font-bold text-[10px] uppercase tracking-widest p-2">Cerrar</button>
+              <button onClick={() => setMostrarFeedback(false)} className="text-gray-400 font-bold text-[10px] uppercase tracking-widest p-2 hover:text-gray-600">Cerrar</button>
             </div>
           </div>
         </div>
