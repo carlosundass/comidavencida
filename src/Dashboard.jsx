@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, X, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing, Bell, Search, BookOpen, ThumbsUp, AlertTriangle, Menu, Infinity, Globe, FileText, Gift } from 'lucide-react';
+import { Trash2, X, Plus, LogOut, Lock, Home, ArrowRight, ShieldCheck, Leaf, DollarSign, Calendar, Tag, Pill, Clock, QrCode, Share2, Edit2, ShoppingCart, CheckCircle2, BellRing, Bell, Search, BookOpen, ThumbsUp, AlertTriangle, Menu, Infinity, Globe, FileText, Gift, Upload } from 'lucide-react';
 import Scanner from './Scanner';
+
+// IMPORTACIÓN DE EXCEL
+import * as XLSX from 'xlsx';
+
 // IMPORTACIONES DE FIREBASE
 import { db } from './firebase';
-import { collection, doc, setDoc, getDoc, addDoc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, addDoc, updateDoc, deleteDoc, onSnapshot, writeBatch } from 'firebase/firestore';
 
 // ==========================================
 // INYECCIÓN DE CSS PARA LA ANIMACIÓN DEL REGALO
@@ -197,6 +201,63 @@ const Dashboard = () => {
     } else { setErrorAuth('Ese código QR no es una invitación de Que No Se Venza.'); }
   };
 
+  // ==========================================
+  // LÓGICA DE CARGA MASIVA (EXCEL)
+  // ==========================================
+  const convertirFechaExcel = (fecha) => {
+    if (!fecha) return '';
+    // Si Excel lo manda como número de serie (ej: 45000)
+    if (typeof fecha === 'number') {
+      const fechaJS = new Date((fecha - 25569) * 86400 * 1000);
+      return fechaJS.toISOString().split('T')[0]; // Devuelve AAAA-MM-DD
+    }
+    // Si viene como texto, lo devolvemos tal cual
+    return String(fecha);
+  };
+
+  const procesarExcel = (e) => {
+    const archivo = e.target.files[0];
+    if (!archivo) return;
+    
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const bstr = evt.target.result;
+      const wb = XLSX.read(bstr, { type: 'binary' });
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      
+      const datosRaw = XLSX.utils.sheet_to_json(ws);
+      if (datosRaw.length === 0) return alert("El archivo está vacío.");
+
+      const batch = writeBatch(db);
+      
+      datosRaw.forEach((fila) => {
+        const nuevoDocRef = doc(collection(db, 'despensas', usuarioActual.id, 'items'));
+        batch.set(nuevoDocRef, {
+          nombre: fila.Nombre || fila.nombre || 'Sin nombre',
+          marca: fila.Marca || fila.marca || '',
+          variante: fila.Variante || fila.variante || '',
+          lote: fila.Lote || fila.lote || '',
+          fecha: convertirFechaExcel(fila.Fecha_Caducidad || fila.fecha || fila.vencimiento),
+          proveedor: fila.Proveedor || fila.proveedor || '',
+          sinFecha: false, // Por defecto para negocios
+          creadoEn: new Date().getTime(),
+          tipo: 'alimento'
+        });
+      });
+
+      try {
+        await batch.commit();
+        alert(`¡Éxito! Se cargaron ${datosRaw.length} productos.`);
+        e.target.value = null; // Limpiamos el input
+      } catch (error) {
+        console.error("Error en carga masiva:", error);
+        alert("Hubo un error al subir los productos.");
+      }
+    };
+    reader.readAsBinaryString(archivo);
+  };
+
   const [productos, setProductos] = useState([]);
   const [medicamentos, setMedicamentos] = useState([]);
   const [compras, setCompras] = useState([]);
@@ -206,7 +267,6 @@ const Dashboard = () => {
   const [editandoId, setEditandoId] = useState(null);
   const [alarmasEnviadas, setAlarmasEnviadas] = useState(new Set());
   
-  // Modificado el valor inicial de frecuencia a "Sin Alarma"
   const [nuevoItem, setNuevoItem] = useState({ 
     tipo: 'alimento', nombre: '', fecha: '', sinFecha: false, dosis: '', frecuencia: 'Sin Alarma', horaInicio: '08:00', duracion: '7', esSiempre: false
   });
@@ -402,6 +462,19 @@ const Dashboard = () => {
              <Search size={18} className="text-gray-400 ml-1" />
              <input type="text" placeholder={`Buscar en ${tabActivo}...`} value={busqueda} onChange={e => setBusqueda(e.target.value)} className="flex-1 outline-none text-sm font-bold text-gray-700 bg-transparent" />
              {busqueda && <button onClick={()=>setBusqueda('')} className="bg-gray-100 p-1.5 rounded-full hover:bg-gray-200"><X size={14} className="text-gray-500"/></button>}
+          </div>
+        )}
+
+        {/* ==========================================
+            BOTÓN DE CARGA MASIVA B2B (NUEVO)
+           ========================================== */}
+        {tabActivo === 'comida' && !busqueda && (
+          <div className="mb-6 flex justify-end animate-in fade-in">
+            <label className="bg-green-600 hover:bg-green-700 text-white font-black text-[11px] uppercase tracking-widest py-2.5 px-4 rounded-xl cursor-pointer flex items-center gap-2 shadow-sm transition-colors">
+              <Upload size={14} />
+              Cargar Excel
+              <input type="file" accept=".xlsx, .xls, .csv" onChange={procesarExcel} className="hidden" />
+            </label>
           </div>
         )}
 
